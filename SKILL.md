@@ -8,7 +8,7 @@ description: >-
   projections. Python 3.10+.
 metadata:
   author: absbox
-  version: "4.0.0"
+  version: "4.0.1"
 license: Apache-2.0
 ---
 
@@ -64,9 +64,10 @@ api = API(EnginePath.LOCAL)                      # localhost:8081 (Docker)
 api = API("https://absbox.org/api/latest", 'english')
 ```
 
-`EnginePath` shortcuts: `DEV`, `PROD`, `LOCAL`, `LDN_DEV`, `LDN_PROD`,
-`NY_DEV`, `NY_PROD`, `USE_ENV` (reads env var `ABSBOX_SERVER`). `PROD` =
-`https://absbox.org/api/latest`.
+`EnginePath` shortcuts: `DEV`, `PROD`, `LOCAL`, `NY_DEV`, `NY_PROD`,
+`USE_ENV` (reads env var `ABSBOX_SERVER`). `PROD` =
+`https://absbox.org/api/latest`. There is **no** `LDN_DEV`/`LDN_PROD` in
+absbox 0.52.3.
 
 **Version rule:** the client and engine must share the same **MAJOR.MINOR**
 version; the patch may differ. `check=True` (the default) enforces this at
@@ -81,11 +82,20 @@ docker pull yellowbean/hastructure
 docker run -p 8081:8081 yellowbean/hastructure
 ```
 
-Auto-select the first reachable endpoint:
+Pick the first reachable endpoint yourself. (`PickApiFrom` exists but is
+**broken in absbox 0.52.3** — it passes `API` an internal `{"url": ...}` dict —
+so do not use it until fixed.)
 
 ```python
-from absbox import PickApiFrom
-api = PickApiFrom([EnginePath.PROD, EnginePath.DEV, "http://host:8081"], lang='english')
+from absbox import API, EnginePath
+
+api = None
+for ep in [EnginePath.PROD, EnginePath.DEV, EnginePath.LOCAL]:
+    try:
+        api = API(ep, lang='english')
+        break
+    except Exception:
+        continue
 ```
 
 ## Minimal complete deal (verified against the DEV engine)
@@ -178,7 +188,7 @@ deal immediately with no cashflow.
 | Root finder / target IRR | `golden-paths/05-root-finder.md` |
 | Revolving pool | `golden-paths/06-revolving.md` |
 | Real loan tape | `golden-paths/07-loan-tape.md` |
-| Fees, reserves, ledgers | `golden-paths/08-fees-reserves-ledgers.md` |
+| Fees, reserves, ledgers | `golden-paths/08-fees-reserves.md` |
 
 ## Running & reading
 

@@ -1,5 +1,22 @@
 # absbox Skill Changelog
 
+## v4.0.1 — 2026-09-27
+- 对齐仓库 AbsBox 0.52.3（用客户端解析器 mkDeal/mkDs/mkAsset/mkBondRate/mkFee/
+  mkNonPerfAssumps 实测）
+- 移除 0.52.3 中不存在的 `EnginePath.LDN_DEV`/`LDN_PROD`；标注 `PickApiFrom`
+  当前不可用（向 `API` 传入 dict）
+- 修正 `ProjectedCashflow`（5 参）、`FixedAsset` 当前余额键 `currentBalance`、
+  `capacity`（`("ByTerm", ...)`）、账户计息键 `"interest"`（非 `"rate"`）、
+  `["Offset", ...]`、`{"byTerm": ...}`
+- 修正公式：`("always", True/False)`、`("cumPoolDefaultedRateTill", N)`、
+  池归集公式的 poolNames 前置参数
+- 修正动作/假设：`calcBondPrin` 参数、clean-up call
+  `("call", {"poolBalance": 200})`、`("inspect", (dp, formula))`、`feeStart` 必填
+- 修正 0.52.3 不支持的写法：Z-bond、`{"Floater": {...}}`、`InverseFloater`、
+  `feeEnd`；trigger points 去掉客户端未映射的 `EndOfPoolCollection`
+- 修正 `golden-paths/08-fees-reserves-ledgers.md` 文件名引用（实为
+  `08-fees-reserves.md`）
+
 ## v4.0.0 — 2026-09-26
 - 验证：在 `absbox` 0.52.3 / Hastructure 0.52.x 上实际运行所有 golden path
   （DEV: 0.52.4，PROD: 0.52.5）
