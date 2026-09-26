@@ -1,471 +1,576 @@
 # absbox Complete Reference
 
-Quick-lookup tables and exhaustive syntax patterns for the absbox structured finance modeling library.
+Lookup tables and exact syntax for the absbox structured finance library.
+Verified against `absbox` 0.52.x / Hastructure 0.52.x. Documentation:
+https://absbox-doc.readthedocs.io/en/latest/
 
-Documentation: https://absbox-doc.readthedocs.io/en/latest/
+> Conventions: formulas are tuples with a trailing comma (`("poolBalance",)`).
+> Waterfall/collect/effect actions are lists. Enums are dict-wrapped
+> (`{"Fixed": 0.05}`). All dates are ISO `YYYY-MM-DD`.
 
 ---
 
-## 1. Formula Reference (Complete)
+## 1. Connection & versioning
 
-### 1.1 Balance Formulas — Pool
+### 1.1 EnginePath shortcuts
+
+| Enum | URL |
+|------|-----|
+| `DEV` | `https://absbox.org/api/dev` |
+| `PROD` | `https://absbox.org/api/latest` |
+| `LOCAL` | `http://localhost:8081` |
+| `LDN_DEV` | `https://ldn.spv.run/api/dev` |
+| `LDN_PROD` | `https://ldn.spv.run/api/latest` |
+| `NY_DEV` | `https://spv.run/api/dev` |
+| `NY_PROD` | `https://spv.run/api/latest` |
+| `USE_ENV` | resolves env var `ABSBOX_SERVER` |
+
+```python
+API(url, lang='english', check=True)
+```
+
+`check=True` (default) requires the client and engine to share MAJOR.MINOR.
+Read `api.server_info` / `api.version` for the connected versions.
+
+### 1.2 Endpoints / request types (internal)
+
+`Endpoints`: `RunDeal`, `RunPool`, `RunAsset`, `RunByCombo`, `RunDate`,
+`RunRootFinder`, `RunMultiDeal`, `RunDealByScnearios`,
+`RunDealByRunScenarios`, `RunPoolByScenarios`, `Version`.
+`RunReqType`: `Single`, `MultiScenarios`, `MultiRunScenarios`,
+`MultiPoolScenarios`, `MultiStructs`, `ComboSensitivity`, `SinglePool`,
+`RootFinder`.
+
+---
+
+## 2. Formula reference
+
+### 2.1 Pool balance / flow
 
 | Formula | Returns | Description |
 |---------|---------|-------------|
-| `("poolBalance",)` | float | Current pool outstanding balance |
+| `("poolBalance",)` | float | Current pool outstanding |
 | `("poolBegBalance",)` | float | Beginning-of-period pool balance |
-| `("originalPoolBalance",)` | float | Original pool balance at issuance |
+| `("originalPoolBalance",)` | float | Original pool balance |
 | `("currentPoolDefaultedBalance",)` | float | Defaulted balance this period |
 | `("cumPoolDefaultedBalance",)` | float | Cumulative defaulted balance |
 | `("cumPoolNetLoss",)` | float | Cumulative net loss |
 | `("cumPoolRecoveries",)` | float | Cumulative recoveries |
-| `("cumPoolCollection",field1,field2)` | float | Cumulative collection on fields |
+| `("cumPoolCollection",field1,...)` | float | Cumulative collection on fields |
 | `("cumPoolCollectionTill",N,field)` | float | Cumulative collection until period N |
-| `("curPoolCollection",field1,field2)` | float | Current period collection sum |
+| `("curPoolCollection",field1,...)` | float | Current-period collection sum |
 | `("schedulePoolValuation",pricing,pool)` | float | Schedule cashflow valuation |
 
-### 1.2 Balance Formulas — Bond
+### 2.2 Bond
 
 | Formula | Returns | Description |
 |---------|---------|-------------|
 | `("bondBalance",)` | float | Sum of all bond balances |
-| `("bondBalance","A","B")` | float | Sum of specific bonds |
+| `("bondBalance","A","B")` | float | Sum of named bonds |
 | `("originalBondBalance",)` | float | Total original bond balance |
-| `("bondFactor",)` | float | Bond factor |
-| `("bondDueInt","A","B")` | float | Due interest on bonds |
+| `("bondFactor",)` | float | Current / original bond balance |
+| `("bondDuePrin","A")` | float | Due principal on bond A |
+| `("bondDueInt","A")` | float | Due interest |
 | `("lastBondIntPaid","A")` | float | Last interest paid |
 | `("behindTargetBalance","A")` | float | Gap to target balance |
+| `("bondRate","A")` | float | Current rate of bond A |
+| `("bondWaRate","A","B")` | float | Weighted-average coupon |
 | `("bondTxnAmt",None,"A")` | float | Total transaction amount |
 | `("bondTxnAmt","<PayInt:A>","A")` | float | Tagged transaction amount |
-| `("bondRate","A")` | float | Current rate of bond A |
-| `("bondWaRate","A","B")` | float | Weighted average coupon |
+| `("activeBondNum",)` | int | Number of active bonds |
 
-### 1.3 Balance Formulas — Account
+### 2.3 Account / fee / liquidity / ledger / swap
 
-| Formula | Returns | Description |
-|---------|---------|-------------|
-| `("accountBalance",)` | float | Sum all accounts |
-| `("accountBalance","A","B")` | float | Specific accounts |
-| `("reserveGap","A","B")` | float | Reserve shortfall |
-| `("reserveExcess","A","B")` | float | Reserve excess |
-| `("accountTxnAmt",None,"A")` | float | Total transactions |
-| `("accountTxnAmt","<tag>","A")` | float | Tagged transactions |
+| Formula | Returns |
+|---------|---------|
+| `("accountBalance",)` / `("accountBalance","A","B")` | Sum of accounts / named |
+| `("accountTxnAmt",None,"A")` / `("accountTxnAmt","<tag>","A")` | Account transactions |
+| `("reserveGap","A")` / `("reserveExcess","A")` | Reserve shortfall / excess |
+| `("feeDue","F1")` / `("lastFeePaid","F1")` | Fee due / last paid |
+| `("feeTxnAmt",None,"F1")` | Fee transaction amount |
+| `("liqCredit","L1")` / `("liqBalance","L1")` | Credit line / drawn balance |
+| `("ledgerBalance","L1")` / `("ledgerTxnAmount","L1")` | Ledger balance / txns |
+| `("rateSwapNet",name)` / `("rateCapNet",name)` | Swap / cap net accrual |
 
-### 1.4 Balance Formulas — Fee, Liquidity, Ledger
+### 2.4 Ratio / integer / bool
 
-| Formula | Returns | Description |
-|---------|---------|-------------|
-| `("feeDue","F1","F2")` | float | Fee due amount |
-| `("lastFeePaid","F1","F2")` | float | Last fee paid |
-| `("feeTxnAmt",None,"F1")` | float | Fee transaction amount |
-| `("liqCredit","L1")` | float | Available credit line |
-| `("liqBalance","L1")` | float | Drawn balance |
-| `("ledgerBalance","L1","L2")` | float | Ledger balance |
-| `("ledgerTxnAmount","L1")` | float | Ledger transactions |
-| `("rateSwapNet",name)` | float | Rate swap net accrual |
-| `("rateCapNet",name)` | float | Rate cap net accrual |
+| Formula | Returns |
+|---------|---------|
+| `("cumPoolDefaultedRate",)` / `("cumPoolDefaultedRate",N)` | Cumulative default rate |
+| `("cumPoolNetLossRate",)` | Cumulative net loss rate |
+| `("poolWaRate",)` / `("bondWaRate","A","B")` | Weighted-average coupon |
+| `("borrowerNumber",)` | int |
+| `("monthsTillMaturity","A")` | int |
+| `("periodNum",)` | int |
+| `("isPaidOff","A","B")` | bool |
+| `("trigger","AfterCollect","name")` | bool |
+| `("isMostSenior","A",["B","C"])` | bool |
+| `("status","Amortizing")` | bool |
+| `("allTest",True,bool1,...)` / `("anyTest",True,bool1,...)` | bool |
+| `("alwaysTrue",)` / `("alwaysFalse",)` | bool |
 
-### 1.5 Integer Formulas
-
-| Formula | Returns | Description |
-|---------|---------|-------------|
-| `("borrowerNumber",)` | int | Number of active borrowers |
-| `("monthsTillMaturity","A")` | int | Months to bond maturity |
-| `("periodNum",)` | int | Pool collection period count |
-
-### 1.6 Ratio Formulas
-
-| Formula | Returns | Description |
-|---------|---------|-------------|
-| `("poolFactor",)` | float | Current/Original pool balance |
-| `("bondFactor",)` | float | Current/Original bond balance |
-| `("cumPoolDefaultedRate",)` | float | Cumulative default rate |
-| `("cumPoolDefaultedRate",N)` | float | Default rate at period N |
-| `("cumPoolNetLossRate",)` | float | Cumulative net loss rate |
-| `("poolWaRate",)` | float | Pool weighted avg coupon |
-| `("bondWaRate","A","B")` | float | Bond weighted avg coupon |
-
-### 1.7 Bool Formulas
-
-| Formula | Returns | Description |
-|---------|---------|-------------|
-| `("isPaidOff","A","B")` | bool | Bonds fully paid off |
-| `("trigger","AfterCollect","name")` | bool | Trigger status |
-| `("isMostSenior","A",["B","C"])` | bool | Is A most senior |
-| `("status","Amortizing")` | bool | Deal in given status |
-| `("allTest",True,bool1,bool2)` | bool | All booleans match |
-| `("anyTest",True,bool1,bool2)` | bool | Any boolean matches |
-
-### 1.8 Combination Formulas (Arithmetic)
+### 2.5 Arithmetic / combination
 
 | Formula | Description |
 |---------|-------------|
-| `("*",F1,F2)` or `("factor",F,N)` | Multiply |
-| `("/",F1,F2)` or `("divide",F1,F2)` | Divide |
-| `("subtract",F1,F2)` or `("-",F1,F2)` | Subtract |
-| `("sum",F1,F2)` or `("+",F1,F2)` | Add |
-| `("max",F1,F2)` | Maximum |
-| `("min",F1,F2)` | Minimum |
-| `("avg",F1,F2)` | Average |
+| `("*",F1,F2)` / `("factor",F,N)` | Multiply |
+| `("/",F1,F2)` / `("divide",F1,F2)` / `("ratio",F1,F2)` | Divide |
+| `("subtract",F1,F2)` / `("-",F1,F2)` | Subtract |
+| `("sum",F1,F2)` / `("+",F1,F2)` | Add |
+| `("max",F1,F2)` / `("min",F1,F2)` / `("avg",F1,F2)` | Max / min / average |
 | `("abs",F)` | Absolute value |
-| `("floorWithZero",F)` | max(0, F) |
-| `("floorWith",F1,F2)` | max(F1, F2) as floor |
-| `("capWith",F1,F2)` | min(F1, F2) as cap |
-| `("excess",F,*Fs)` | max(0, F - sum(Fs)) |
-| `("floorCap",floor,cap,value)` | Clamp value |
-| `("constant",N)` or `("const",N)` | Constant value |
+| `("floorWithZero",F)` | `max(0, F)` |
+| `("floorWith",F1,F2)` / `("capWith",F1,F2)` | Floor / cap |
+| `("excess",F,*Fs)` | `max(0, F - sum(Fs))` |
+| `("floorCap",floor,cap,value)` | Clamp |
+| `("constant",N)` / `("const",N)` | Constant |
 | `("custom","myDataName")` | User-defined data |
-| `("ratio",F1,F2)` | F1 / F2 |
 
 ---
 
-## 2. Condition Reference (Complete)
+## 3. Condition reference
 
-| Condition | Syntax | Description |
-|-----------|--------|-------------|
-| Greater than | `[formula, ">", value]` | Numeric comparison |
-| Less than | `[formula, "<", value]` | Numeric comparison |
-| Greater or equal | `[formula, ">=", value]` | Numeric comparison |
-| Less or equal | `[formula, "<=", value]` | Numeric comparison |
-| Equal | `[formula, "=", value]` | Numeric comparison |
-| Bool check | `[formula, True]` or `[formula, False]` | Boolean formula |
-| Date before | `["<", "2025-01-01"]` | Current date comparison |
-| Date after | `[">", "2025-01-01"]` | Current date comparison |
-| Period count | `["period", ">", 5]` | Period-based |
-| Status check | `["status", "Amortizing"]` | Deal status |
-| All (AND) | `["all", cond1, cond2]` | All conditions true |
-| Any (OR) | `["any", cond1, cond2]` | Any condition true |
-| Not | `["not", cond]` | Negation |
-| Against curve | `[formula, ">", [["2021-01-01",0.03],["2022-01-01",0.05]]]` | Compare with curve |
-| Always true | `("alwaysTrue",)` | Constant true |
-| Always false | `("alwaysFalse",)` | Constant false |
-
----
-
-## 3. DatePattern Reference (Complete)
-
-| Pattern | Syntax | Description |
-|---------|--------|-------------|
-| Month End | `"MonthEnd"` | Last day of each month |
-| Month First | `"MonthFirst"` | First day of each month |
-| Quarter End | `"QuarterEnd"` | Mar/Jun/Sep/Dec last day |
-| Quarter First | `"QuarterFirst"` | Mar/Jun/Sep/Dec 1st |
-| Year End | `"YearEnd"` | Dec 31 |
-| Year First | `"YearFirst"` | Jan 1 |
-| Daily | `"Daily"` | Every day |
-| Day of Month | `["DayOfMonth", D]` | Day D of each month |
-| Month+Day of Year | `["MonthDayOfYear", M, D]` | Specific M/D yearly |
-| Weekday | `["Weekday", N]` | N=0(Mon)..6(Sun) |
-| Custom dates | `["CustomDate", "2021-01-01", "2021-06-01"]` | Explicit dates |
-| Every N months | `["EveryNMonth", "2021-01-01", N]` | Every N months from start |
-| After date | `["After", "2021-01-01", dp]` | dp only after date |
-| Union | `["+", dp1, dp2]` | Combine patterns |
-| Difference | `["-", dp1, dp2]` | Exclude dp2 from dp1 |
-| Offset | `["OffsetDatePattern", dp, N]` | Shift by N days |
-
----
-
-## 4. Constants Reference
-
-### 4.1 Day Count Conventions
-
-| Constant | Convention |
-|----------|------------|
-| `DC_30E_360` | 30E/360 (European) |
-| `DC_30Ep_360` | 30E+/360 |
-| `DC_ACT_360` | Actual/360 |
-| `DC_ACT_365` | Actual/365 (Fixed) |
-| `DC_ACT_365A` | Actual/365 (Actual) |
-| `DC_ACT_365L` | Actual/365 (Leap) |
-| `DC_NL_365` | NL/365 |
-| `DC_ACT_365F` | Actual/365F |
-| `DC_ACT_ACT` | Actual/Actual (ISDA) |
-| `DC_30_360_ISDA` | 30/360 (ISDA) |
-| `DC_30_360_German` | 30/360 (German) |
-| `DC_30_360_US` | 30/360 (US) |
-
-### 4.2 Interest Rate Indexes
-
-| Region | Indexes |
-|--------|---------|
-| China | `LPR5Y`, `LPR1Y` |
-| US (Legacy) | `LIBOR1M`, `LIBOR3M`, `LIBOR6M`, `LIBOR1Y` |
-| US (Current) | `SOFR1M`, `SOFR3M`, `SOFR6M`, `SOFR1Y` |
-| US Treasury | `USTSY1Y` through `USTSY30Y`, `USCMT1Y` |
-| US Other | `PRIME`, `COFI` |
-| Europe | `EURIBOR1M`, `EURIBOR3M`, `EURIBOR6M`, `EURIBOR12M` |
-| Spain | `IRPH` |
-| UK | `SONIA` |
-
-### 4.3 Periods
-
-`Daily`, `Weekly`, `Monthly`, `Quarterly`, `SemiAnnually`, `Annually`
-
-### 4.4 Deal Status Enums
-
-| Status | Description |
-|--------|-------------|
-| `PreClosing` | Before closing (warehousing) |
-| `Warehousing` | Accumulation/warehouse period |
-| `RampUp` | Ramp-up period |
-| `Revolving` | Active revolving |
-| `Amortizing` | Normal amortization |
-| `Accelerated` | Accelerated repayment |
-| `Defaulted` | Deal default |
-| `Called` | Clean-up call exercised |
-| `Ended` | Deal terminated |
-
-### 4.5 Pool Source Enums
-
-`CollectedInterest`, `CollectedPrincipal`, `CollectedRecoveries`, `CollectedPrepayment`, `CollectedRental`, `CollectedFeePaid`, `CollectedCash`
-
-### 4.6 Pricing Methods
-
-| Method | Syntax | Description |
-|--------|--------|-------------|
-| Current/Default factor | `["Current|Defaulted", 0.9, 0.2]` | Factor on performing/defaulted |
-| With delinquency | `["Current|Delinquent|Defaulted", 0.95, 0.8, 0.2]` | Three-state factor |
-| PV + default factor | `["PV|Defaulted", curve, 0.2]` | PV for performing |
-| PV curve | `["PVCurve", ts]` | PV discount all assets |
-| PV rate | `["PvRate", 0.05]` | Fixed annualized rate |
-
----
-
-## 5. Asset Type Quick Reference
-
-### 5.1 Mortgage Variants
-
-| Variant | `type` field | Description |
-|---------|-------------|-------------|
-| Level payment | `"Level"` | French amortization (annuity) |
-| Even principal | `"Even"` | Linear amortization |
-| Interest only | `"I_P"` | Interest only, bullet at maturity |
-| IO first N | `("IO_FirstN", N, "Level")` | IO for N periods then Level |
-| No pay first N | `("NO_FirstN", N, "Level")` | No payment for N periods |
-| Balloon | `("Balloon", N)` | Balloon with N-period amort schedule |
-
-### 5.2 Prepayment Penalty Types
-
-| Type | Syntax |
-|------|--------|
-| By term | `{"byTerm": [N, rate1, rate2]}` |
-| Fixed amount | `{"fixAmount": [amount, term]}` |
-| Fixed pct | `{"fixPct": [pct, term]}` |
-| Sliding | `{"sliding": [pct, step]}` |
-| Step down | `{"stepDown": [(N1, r1), (N2, r2)]}` |
-
-### 5.3 Lease Rental Types
-
-| Type | Syntax |
-|------|--------|
-| By day | `("byDay", dailyRate, datePattern)` |
-| By period | `("byPeriod", amount, period)` |
-
-### 5.4 Lease Step-Up Types
-
-| Type | Syntax |
-|------|--------|
-| Flat rate | `("flatRate", 0.05)` |
-| Flat amount | `("flatAmount", 50)` |
-| By rates | `("byRates", 1.05, 1.065, 1.06)` |
-| By amounts | `("byAmounts", 50, 100, 150)` |
-
-### 5.5 Invoice Fee Types
-
-| Type | Syntax |
-|------|--------|
-| Fixed fee | `("Fixed", amount)` |
-| Fixed rate | `("FixedRate", rate)` |
-| Advance rate | `("AdvanceRate", rate)` |
-| Factor fee | `("FactorFee", rate, days, rounding)` |
-| Compound fee | `("CompoundFee", feeType1, feeType2)` |
-
----
-
-## 6. Fee Type Quick Reference
-
-| Fee Type | Syntax | Auto-Accrue |
-|----------|--------|-------------|
-| One-off fixed | `{"fixFee": 100}` | Yes |
-| Recurring | `{"recurFee": [datePattern, amount]}` | Yes |
-| Percentage | `{"pctFee": [formula, 0.02]}` | No |
-| Annual percentage | `{"annualPctFee": [formula, 0.005]}` | No |
-| Custom flow | `{"customFee": [["2024-01-01", 100]]}` | Yes |
-| Count-based | `{"numFee": [datePattern, formula, unitCost]}` | Yes |
-| Target balance | `{"targetBalanceFee": [formula_target, formula_current]}` | No |
-| By period (v0.23.5) | `{"byPeriod": 15}` | Yes |
-| By table (v0.23.5) | `{"byTable": [datePattern, formula, table]}` | Yes |
-| By index (v0.23.5) | `{"byCollectPeriod": [N, formula, rate]}` | Yes |
-
----
-
-## 7. Bond Rate Type Quick Reference
-
-| Rate Type | Syntax |
+| Condition | Syntax |
 |-----------|--------|
-| Fixed | `{"Fixed": 0.08}` or `{"fix": 0.08}` |
+| Numeric compare | `[formula, ">" | "<" | ">=" | "<=" | "=", value]` |
+| Bool check | `[formula, True]` / `[formula, False]` |
+| Date compare | `["<", "2025-01-01"]` / `[">", "2025-01-01"]` / `["=", "2022-08-20"]` |
+| Period | `["period", "in", [1,2,3]]` |
+| Status | `["status", "Amortizing"]` |
+| All (AND) | `["all", cond1, cond2]` |
+| Any (OR) | `["any", cond1, cond2]` |
+| Not | `["not", cond]` |
+| Against curve | `[formula, ">", [["2021-01-01",0.03],["2022-01-01",0.05]]]` |
+| Always true/false | `("alwaysTrue",)` / `("alwaysFalse",)` |
+
+Date equality `["=", "YYYY-MM-DD"]` is commonly used inside `If` to fire an
+action on a specific pay date.
+
+---
+
+## 4. DatePattern reference
+
+| Pattern | Syntax |
+|---------|--------|
+| Month end / first | `"MonthEnd"` / `"MonthFirst"` |
+| Quarter end / first | `"QuarterEnd"` / `"QuarterFirst"` |
+| Year end / first | `"YearEnd"` / `"YearFirst"` |
+| Daily | `"Daily"` |
+| Day of month | `["DayOfMonth", D]` |
+| Month/day of year | `["MonthDayOfYear", M, D]` |
+| Weekday | `["Weekday", N]` (0=Mon) |
+| Custom dates | `["CustomDate", "2021-01-01", "2021-06-01"]` |
+| Every N months | `["EveryNMonth", "2021-01-01", N]` |
+| After date | `["After", "2021-01-01", dp]` |
+| Union | `["+", dp1, dp2]` |
+| Difference | `["-", dp1, dp2]` |
+| Offset | `["OffsetDatePattern", dp, N]` |
+
+---
+
+## 5. Asset types
+
+Each pool entry is `[assetType, originDict, currentDict]`.
+
+### 5.1 Mortgage
+
+```python
+["Mortgage",
+ {"originBalance": 12000, "originRate": ["fix", 0.045], "originTerm": 120,
+  "freq": "Monthly", "type": "Level", "originDate": "2021-02-01"},
+ {"currentBalance": 10000, "currentRate": 0.075, "remainTerm": 80,
+  "status": "Current"}]
+```
+
+| `type` | Meaning |
+|--------|---------|
+| `"Level"` | French / annuity amortization |
+| `"Even"` | Straight-line principal |
+| `"I_P"` | Interest-only, bullet at maturity |
+| `("IO_FirstN", N, "Level")` | IO for N periods, then Level |
+| `("NO_FirstN", N, "Level")` | No payment for N periods |
+| `("Balloon", N)` | Balloon over N-period schedule |
+
+Floating rate:
+
+```python
+"originRate": ["floater", 0.045, {"index": "SOFR3M", "spread": 0.01, "reset": "QuarterEnd"}]
+# with cap/floor:
+"originRate": ["floater", 0.045, {"index": "SOFR3M", "spread": 0.01,
+                                  "reset": "QuarterEnd", "cap": 0.09, "floor": 0.03}]
+```
+
+ARM: add an `"arm"` field to the origin dict —
+`{"initPeriod": 60, "firstCap": 0.02, "periodicCap": 0.01, "lifeCap": 0.06,
+"lifeFloor": 0.02}`. Variants: Buy-To-Let, IO/No-payment period, prepayment
+penalty types (`{"byTerm": [...]}`, `{"fixPct": [...]}`, `{"sliding": [...]}`,
+`{"stepDown": [...]}`).
+
+### 5.2 Loan
+
+```python
+["Loan",
+ {"originBalance": 80000, "originRate": ["fix", 0.08], "originTerm": 36,
+  "freq": "Monthly", "type": "i_p", "originDate": "2021-02-01"},
+ {"currentBalance": 65000, "currentRate": 0.06, "remainTerm": 30,
+  "status": "Current"}]
+```
+
+Types: `"i_p"` (interest-only then principal), `"Schedule"` (custom schedule).
+
+### 5.3 Lease
+
+```python
+["Lease",
+ {"rental": ("byDay", 2.0, ["DayOfMonth", 5]), "originTerm": 24,
+  "originDate": "2021-03-01"},
+ {"currentBalance": 1, "status": "Current", "remainTerm": 24}]
+```
+
+Rental: `("byDay", dailyRate, datePattern)` or `("byPeriod", amount, period)`.
+Step-up: `("flatRate", r)`, `("flatAmount", a)`, `("byRates", ...)`,
+`("byAmounts", ...)`.
+
+### 5.4 Installment
+
+```python
+["Installment",
+ {"originBalance": 1000, "feeRate": ["fix", 0.01], "originTerm": 12,
+  "freq": "Monthly", "type": "f_p", "originDate": "2022-01-01"},
+ {"status": "Current", "currentBalance": 1000, "remainTerm": 10}]
+```
+
+### 5.5 FixedAsset
+
+```python
+["FixedAsset",
+ {"start": "2023-11-01", "originBalance": 1000000, "originTerm": 120,
+  "residual": 100000, "period": "Monthly", "amortize": "Straight",
+  "capacity": ("Fixed", 24*25*120*30)},
+ {"remainTerm": 120, "balance": 30000}]
+```
+
+`amortize`: `"Straight"` / `"DecliningBalance"`. `capacity`:
+`("Fixed", v)` or `("ByTimeSeries", [[date, v], ...])`.
+
+### 5.6 Invoice / Receivable
+
+```python
+["Invoice",
+ {"start": "2024-04-01", "originBalance": 2000, "originAdvance": 1500,
+  "dueDate": "2024-06-01", "feeType": ("Fixed", 150)},
+ {"status": "Current"}]
+```
+
+Fee types: `("Fixed", amount)`, `("FixedRate", rate)`,
+`("AdvanceRate", rate)`, `("FactorFee", rate, days, rounding)`,
+`("CompoundFee", feeType1, feeType2)`.
+
+### 5.7 Projected cashflows
+
+```python
+["ProjectedCashflow",
+ [["2024-01-01", 100, 50], ["2024-02-01", 100, 45]], "MonthEnd"]
+# each row: [date, principal, interest]
+
+["ProjectedByFactor",
+ [["2024-01-01", 10000], ["2024-06-01", 8000]], "MonthEnd",
+ (0.02, 0.05), None]   # (default rate, prepay rate), extra
+```
+
+---
+
+## 6. Fee types (exact)
+
+```python
+"fees": {
+    "trusteeFee": {"type": {"fixFee": 30}, "feeStart": "2021-06-15"}
+}
+```
+
+| Fee type | Syntax |
+|----------|--------|
+| One-off fixed | `{"fixFee": 100}` |
+| Recurring | `{"recurFee": [datePattern, amount]}` |
+| Percentage | `{"pctFee": [formula, rate]}` |
+| Annual percentage | `{"annualPctFee": [formula, rate]}` |
+| Custom flow | `{"customFee": [["2024-01-01", 100], ["2025-01-01", 200]]}` |
+| Count-based | `{"numFee": [datePattern, formula, unitCost]}` |
+| Target balance | `{"targetBalanceFee": [formula_target, formula_current]}` |
+| By period | `{"byPeriod": amount}` |
+| By table | `{"byTable": [datePattern, formula, table]}` |
+| By bond period | `{"flowByBondPeriod": [[index, amount], ...]}` |
+| By pool period | `{"flowByPoolPeriod": [[index, amount], ...]}` |
+
+Optional keys: `"feeStart"`, `"feeEnd"`. A fee must be paid by a waterfall
+action (`payFee`, `calcAndPayFee`, ...) to affect cashflow.
+
+---
+
+## 7. Bond types & rate types
+
+### 7.1 Bond definition
+
+```python
+"bonds": {
+    "A1": {"balance": 1000, "rate": 0.07, "originBalance": 1000,
+           "originRate": 0.07, "startDate": "2020-01-03",
+           "rateType": {"Fixed": 0.08}, "bondType": {"Sequential": None}}
+}
+```
+
+Optional: `maturityDate`, `lastAccrueDate`, `dueInt`. Multi-rate bond:
+`"rates": [r1, r2]` with `"rateTypes": [rt1, rt2]`.
+
+### 7.2 Bond types (dict-wrapped)
+
+| Type | Syntax |
+|------|--------|
+| Sequential | `{"Sequential": None}` |
+| PAC | `{"PAC": [["2021-07-20", 800]], "anchorBonds": ["A2"]}` |
+| Lockout | `{"Lockout": "2023-01-01"}` |
+| Equity | `{"Equity": None}` |
+| IO | `{"IO": None}` |
+| Z-bond | `{"Z": None}` |
+| Balance schedule | `{"BalanceByPeriod": [[0, 900], [5, 800], [6, 0]]}` |
+
+### 7.3 Bond groups
+
+Groups are **structural** — nest bonds under the group name:
+
+```python
+"bonds": {
+    "Senior": {"A1": {...}, "A2": {...}},
+    "Mezz":   {"B":  {...}},
+    "EQ":     {"E":  {"bondType": {"Equity": None}, ...}}
+}
+```
+
+Group waterfall actions then reference `"Senior"` / `"Mezz"`. A `"bondGroup"`
+key inside an individual bond is not the mechanism.
+
+### 7.4 Rate types
+
+| Rate type | Syntax |
+|-----------|--------|
+| Fixed | `{"Fixed": 0.08}` / `{"fix": 0.08}` |
 | Fixed + day count | `{"fix": 0.08, "dayCount": "DC_ACT_365"}` |
-| Floater (tuple) | `{"floater": [0.05, "SOFR1Y", -0.0169, "MonthEnd"]}` |
-| Floater (dict, v0.52.3) | `{"rate": 0.03, "reset": "QuarterEnd", "index": "SOFR1Y", "spread": -0.0169}` |
-| Floater + cap/floor | `{"floater": [...], "cap": 0.10, "floor": 0.05}` |
+| Floater (dict) | `{"Floater": {"index": "SOFR3M", "spread": 0.015, "reset": "MonthEnd"}}` |
+| Floater + cap/floor | `{"Floater": {..., "cap": 0.09, "floor": 0.03}}` |
 | Step-up (once) | `{"stepUp": ("once", "2024-01-01", 0.01)}` |
 | Step-up (ladder) | `{"stepUp": ("ladder", "2024-01-01", 0.01, "QuarterEnd")}` |
-| Step-up (v0.52.3) | `{"date": "2024-01-01", "spread": 0.01}` |
 | Cap wrapper | `("cap", 0.06, innerRateType)` |
 | Floor wrapper | `("floor", 0.005, innerRateType)` |
-| Cap + Floor | `("floor", 0.005, ("cap", 0.06, innerRateType))` |
 | Inverse floater | `{"InverseFloater": {"index": "SOFR3M", "cap": 0.12, "floor": 0.0}}` |
 | Ref balance | `("refBalance", formula, rateType)` |
-| Ref formula | `("ref", 0.05, ("poolWaRate",), 1.0, "MonthEnd")` |
+| Ref pool rate | `("ref", 0.05, ("poolWaRate",), 1.0, "MonthEnd")` |
 | Interest over interest | `("withIntOverInt", ("inflate", 0.2), {"fix": 0.0569})` |
-| Int over int (v0.52.3) | `{"intOverInt": {"inflate": 0.03}, "rateType": {"fix": 0.05}}` |
-| Multi-rate | bond with `"rates": [r1, r2]` and `"rateTypes": [rt1, rt2]` |
 
 ---
 
-## 8. Bond Type Quick Reference
+## 8. Accounts
 
-| Bond Type | Syntax | Description |
-|-----------|--------|-------------|
-| Sequential | `{"Sequential": None}` | Pay in order of seniority |
-| PAC | `{"PAC": [[date, bal], ...]}` | Planned amortization class |
-| PAC + anchor | `{"PAC": [...], "anchorBonds": ["A2"]}` | PAC with companion |
-| Lockout | `{"Lockout": "2023-01-01"}` | No principal until date |
-| Equity | `{"Equity": None}` | Residual tranche |
-| IO | `{"IO": None}` | Interest-only strip |
-| Z-bond | `{"Z": None}` | Accrual bond |
-| Balance schedule | `{"BalanceByPeriod": [[0,900],[5,800],[6,0]]}` | Scheduled balance |
+```python
+"accounts": {
+    "acc01":     {"balance": 0},
+    "reserve":   {"balance": 50000, "type": ("fix", 50000)},
+    "targetRes": {"balance": 5000, "type": ("target", ("*", ("poolBalance",), 0.0035))},
+    "condRes":   {"balance": 100, "type": ("when", [("isPaidOff","A"), True],
+                                          ("fix", 0), ("target", ("*",("poolBalance",),0.0035)))},
+    "intAcc":    {"balance": 1000, "rate": ("fixed", 0.02)},
+    "floatAcc":  {"balance": 1000, "rate": ("floater", "SOFR3M", 0.005)}
+}
+```
+
+Reserve targets: `("fix", amount)`, `("target", formula)`,
+`("when", cond, ifTrue, ifFalse)`. Without `type`, an account is a plain
+passthrough.
 
 ---
 
-## 9. Waterfall Action Quick Reference
+## 9. Waterfall actions (exact signatures)
 
-### 9.1 Fee Actions
+The waterfall is a dict keyed by deal status. Standard keys: `"Amortizing"`,
+`"Accelerated"`, `"Defaulted"`, `"Revolving"`, `"cleanUp"`, `"Warehousing"`.
+`"amortizing"` (lowercase) is also accepted.
 
-```python
-["calcFee", "fee1", "fee2"]                           # calculate fees due
-["payFee", "acc", ["fee1", "fee2"]]                   # pay pro-rata
-["payFeeBySeq", "acc", ["fee1", "fee2"]]              # pay sequentially
-["calcAndPayFee", "acc", ["fee1"]]                    # calc + pay
-["payFeeResidual", "acc", "fee1"]                     # pay regardless of due
-```
-
-### 9.2 Interest Actions
+### 9.1 Fees
 
 ```python
-["calcInt", "A1", "A2"]                               # accrue only
-["payInt", "acc", ["A1", "A2"]]                       # pay pro-rata
-["payIntBySeq", "acc", ["A1", "A2"]]                  # pay sequentially
-["accrueAndPayInt", "acc", ["A1", "A2"]]              # accrue + pay pro-rata
-["accrueAndPayIntBySeq", "acc", ["A1", "A2"]]         # accrue + pay seq
-["payIntResidual", "acc", "B"]                        # pay all as interest
-["payIntByIndex", "acc", ["A1"], 0]                   # pay specific rate index
+["calcFee", "fee1", "fee2"]                    # calculate due only (no source)
+["payFee", "acc", ["fee1", "fee2"]]            # pay pro-rata
+["payFeeBySeq", "acc", ["fee1", "fee2"]]       # pay sequentially
+["calcAndPayFee", "acc", ["fee1"]]
+["payFeeResidual", "acc", "fee1"]              # pay remaining due
 ```
 
-### 9.3 Principal Actions
+### 9.2 Interest
 
 ```python
-["payPrin", "acc", ["A1", "A2"]]                      # pay pro-rata
-["payPrinBySeq", "acc", ["A1", "A2"]]                 # pay sequentially
-["payPrinResidual", "acc", ["B"]]                     # pay all remaining
-["payPrinWithDue", "acc", ["A1"]]                     # pay up to due
-["writeOff", "A1"]                                    # write off balance
-["writeOff", ["A1","A2"], {"formula":("constant",100)}]  # with limit
-["fundWith", "acc", "A1"]                             # increase bond balance
+["calcInt", "A1", "A2"]                        # accrue only (no source)
+["payInt", "acc", ["A1", "A2"]]
+["payIntBySeq", "acc", ["A1", "A2"]]
+["accrueAndPayInt", "acc", ["A1", "A2"]]
+["accrueAndPayIntBySeq", "acc", ["A1", "A2"]]
+["payIntResidual", "acc", "B"]
+["payIntByIndex", "acc", ["A1"], 0]
+["payIntOverInt", "acc", ["A1"]]               # penalty interest
 ```
 
-### 9.4 Account Actions
+### 9.3 Principal
 
 ```python
-["transfer", "src", "tgt"]                            # transfer all
-["transfer", "src", "tgt", {"balCapAmt": 100}]        # with amount cap
-["transfer", "src", "tgt", {"balPct": 0.1}]           # with pct cap
-["transfer", "src", "tgt", {"formula": formula}]      # with formula
-["transfer", "src", "tgt", {"reserve": "gap"}]        # fill reserve gap
-["transfer", "src", "tgt", {"reserve": "excess"}]     # sweep excess
-["transferMultiple", ["a1","a2"], "tgt"]               # multiple sources
+["payPrin", "acc", ["A1", "A2"]]
+["payPrinBySeq", "acc", ["A1", "A2"]]
+["payPrinResidual", "acc", ["B"]]
+["payPrinWithDue", "acc", ["A1"]]              # pay scheduled principal due
+["calcBondPrin", "acc", ["A1"]]                # accrue due principal only
+["writeOff", "A1", None]                       # limit required (None ok)
+["writeOff", ["A1","A2"], {"formula": ("constant", 100)}]
+["fundWith", "acc", "A1", None]                # limit required
 ```
 
-### 9.5 Asset Actions
+### 9.4 Accounts
+
+```python
+["transfer", "src", "tgt"]
+["transfer", "src", "tgt", {"balCapAmt": 100}]
+["transfer", "src", "tgt", {"balPct": 0.1}]
+["transfer", "src", "tgt", {"formula": formula}]
+["transfer", "src", "tgt", {"reserve": "gap"}]     # fill target account's gap
+["transfer", "src", "tgt", {"reserve": "excess"}]  # sweep excess
+["transferMultiple", ["a1", "a2"], "tgt"]
+```
+
+### 9.5 Assets
 
 ```python
 ["sellAsset", ["Current|Defaulted", 0.9, 0.2], "acc"]
-["sellAsset", {"PvRate": 0.05}, "acc"]
+["sellAsset", ["PvRate", 0.05], "acc"]
+["buyAsset", ["Current|Defaulted", 1.0, 0], "acc"]
 ["buyAsset", ["PvRate", 0.05], "acc", None]
-["buyAsset", ["PvRate", 0.05], "acc", {"formula": formula}]
-["buyAsset2", ["PvRate", 0.05], "acc", None, "rev_pool", "deal_pool"]
+["buyAsset2", ["Current|Defaulted", 1.0, 0], "acc", None, "revPool", "dealPool"]
 ```
 
-### 9.6 Liquidity Actions
+### 9.6 Liquidity
 
 ```python
-["liqSupport", "liq1", "account", ["acc1"], {"formula": ("constant", 500)}]
+["liqSupport", "liq1", "account", ["acc01"], {"formula": ("constant", 500)}]
 ["liqSupport", "liq1", "fee", ["fee1"], None]
 ["liqSupport", "liq1", "interest", ["A1"], None]
-["liqRepay", "bal", "acc", "liq1", None]
-["liqRepay", ["int", "bal", "premium"], "acc", "liq1", None]
+["liqRepay", ["int", "bal"], "acc", "liq1"]        # 4 args; add a 5th limit if needed
 ["liqRepayResidual", "acc", "liq1"]
 ["liqAccrue", "liq1"]
 ```
 
-### 9.7 Swap Actions
+### 9.7 Swaps & caps
 
 ```python
-["settleSwap", "acc", "swap1"]                        # settle net
-["paySwap", "acc", "swap1"]                           # pay obligation
-["receiveSwap", "acc", "swap1"]                       # receive payment
+["settleSwap", "acc", "swap1"]
+["paySwap", "acc", "swap1"]
+["receiveSwap", "acc", "swap1"]
+["settleCap", "acc", "cap1"]
 ```
 
-### 9.8 Control Flow
+### 9.8 Control flow & inspection
 
 ```python
-["If", condition, action_true, action_false]
+["If", condition, action]                # actions are variadic
 ["IfElse", condition, [true_actions], [false_actions]]
 ["changeStatus", "Accelerated"]
 ["changeStatusIf", condition, "Defaulted"]
-["inspect", "comment", formula1, formula2]
-```
-
-### 9.9 Group Actions
-
-```python
-["calcIntByGroup", "A"]
-["accrueAndPayIntByGroup", "A", "ByRate"]
-["payIntByGroup", "A", "ByMaturity", {"limit": {...}}]
-["payPrinByGroup", "A", "ByName"]
-```
-
-### 9.10 Booking/Ledger Actions
-
-```python
+["inspect", "label", formula1, formula2]
+["bookBy", bookType]
+# with ledger booking:
 ["transfer", "src", "tgt", limit, "book", "Debit", "ledgerName"]
-["bookBy", ["PDL", default, [(ledger, cap)]]]
-["bookBy", ["formula", ledger, "Debit", formula]]
 ```
 
-### 9.11 Limit Syntax
+### 9.9 Group actions
+
+`source` is the paying account; `target` is the group name; `order` is one of
+`"byName"`, `"byMaturity"`, `"byCurRate"`, `"byProrata"` (or
+`("byName", "A1", "A2")` for a custom order). Groups must be defined as nested
+bond maps (§7.3).
+
+```python
+["calcIntByGroup", ["Senior"]]
+["accrueAndPayIntByGroup", "acc", "Senior", "byName"]
+["payIntByGroup", "acc", "Senior", "byName"]
+["payPrinByGroup", "acc", "Senior", "byName"]
+```
+
+### 9.10 Limit syntax
 
 | Limit | Syntax |
 |-------|--------|
-| Amount cap | `{"balCapAmt": 500}` |
-| Percentage cap | `{"balPct": 0.1}` |
+| Amount cap | `{"balCapAmt": 100}` |
+| Balance pct | `{"balPct": 0.1}` |
 | Formula | `{"formula": formula}` |
-| Reserve gap | `{"reserve": "gap"}` |
-| Reserve excess | `{"reserve": "excess"}` |
-
-### 9.12 Support Syntax
-
-```python
-["account", "accName"]
-["facility", "liqName"]
-["support", ["account", "a1"], ["facility", "l1"]]
-```
+| Reserve gap / excess | `{"reserve": "gap"}` / `{"reserve": "excess"}` |
 
 ---
 
-## 10. Pool Assumption Patterns
+## 10. Collection rules & pool sources
 
-### 10.1 Default Assumptions
+```python
+"collect": [["CollectedInterest", "acc01"], ["CollectedPrincipal", "acc01"]]
+
+# percentage split
+"collect": [["CollectedInterest", [["acc01", 0.8], ["acc02", 0.2]]]]
+
+# multi-pool: [[poolName], source, account]
+"collect": [[["PoolA"], "CollectedInterest", "acc01"],
+            [["PoolB"], "CollectedInterest", "acc02"]]
+```
+
+Pool sources: `CollectedInterest`, `CollectedPrincipal`, `CollectedPrepayment`,
+`CollectedRecoveries`, `CollectedRental`, `CollectedFeePaid`, `CollectedCash`,
+plus `NewDefaults`, `NewDelinquencies`, `NewLosses`, `CurBalance`,
+`CurBegBalance`.
+
+---
+
+## 11. Triggers
+
+```python
+"triggers": {
+    "AfterCollect": {
+        "cumLoss": {
+            "condition": [("cumPoolDefaultedRate",), ">", 0.03],
+            "effects": ("newStatus", "Accelerated"),
+            "status": False,
+            "curable": True        # True = cures when condition clears
+        }
+    }
+}
+```
+
+Trigger points: `BeforeCollect`, `AfterCollect`, `BeforeDistribution`,
+`AfterDistribution`, `InDistribution`, `EndOfPoolCollection`.
+
+Effects:
+
+| Effect | Syntax |
+|--------|--------|
+| Change status | `("newStatus", "Accelerated")` |
+| Run actions | `("actions", action1, action2)` |
+| Accrue fees | `["accrueFees", "fee1"]` |
+| Set reserve target | `["newReserveBalance", "acc1", {"fixReserve": 1000}]` |
+| Add trigger | `["newTrigger", {...}]` |
+| Multiple | `["Effects", effect1, effect2]` |
+| Change bond rate | `("changeBondRate", bondName, rateType, newRate)` |
+
+---
+
+## 12. Pool assumptions
+
+Structure: `("Pool", (assetType, default, prepay, recovery, extra), delinq, extra)`.
+
+```python
+("Pool", ("Mortgage", {"CDR": 0.01}, {"CPR": 0.05}, {"Rate": 0.7, "Lag": 18}, None), None, None)
+```
+
+### 12.1 Default
 
 | Type | Syntax |
 |------|--------|
@@ -475,197 +580,175 @@ Documentation: https://absbox-doc.readthedocs.io/en/latest/
 | By amount | `{"ByAmount": (2000, [0.25, 0.25, 0.50])}` |
 | Default at end | `{"DefaultAtEndByRate": (0.05, 0.10)}` |
 | By term | `{"ByTerm": [[vec1], [vec2]]}` |
-| Stress by curve | `{"StressByCurve": [curve, baseAssump]}` |
 
-### 10.2 Prepayment Assumptions
+### 12.2 Prepayment / recovery / extra
 
 | Type | Syntax |
 |------|--------|
 | Constant CPR | `{"CPR": 0.01}` |
-| CPR vector | `{"CPR": [0.01, 0.02, 0.03]}` |
-| CPR padding | `{"CPRPadding": [0.01, 0.02, 0.04]}` |
+| CPR vector / padding | `{"CPR": [...]}` / `{"CPRPadding": [...]}` |
 | PSA multiple | `{"PSA": 1.5}` |
-| By term | `{"ByTerm": [...]}` |
+| Recovery | `{"Rate": 0.7, "Lag": 18}` or `{"Rate": 0.45, "Timing": [0.3,0.3,0.4]}` |
 | Stress by curve | `{"StressByCurve": [curve, baseAssump]}` |
 
-### 10.3 Recovery Assumptions
+### 12.3 Application scope
 
-| Type | Syntax |
-|------|--------|
-| Rate + lag | `{"Rate": 0.7, "Lag": 18}` |
-| Rate + timing | `{"Rate": 0.45, "Timing": [0.3, 0.3, 0.4]}` |
-
-### 10.4 Lease-Specific Assumptions
-
-| Component | Options |
-|-----------|---------|
-| Default | `('byContinuation', 0.02)`, `('byTermination', 0.05)` |
-| Turnover gap | `('days', 30)`, `('byCurve', [["2023-01-01", 15]])` |
-| Rental change | `('byAnnualRate', -0.3)`, `('byRateCurve', [[date, rate]])`, `('byRateVec', -0.1, -0.3)` |
-| End type | `("byDate", "2026-09-20")`, `("byExtTimes", 1)`, `("earlierOf", date, N)`, `("laterOf", date, N)` |
-
-### 10.5 Assumption Application Methods
-
-| Method | Syntax |
-|--------|--------|
-| Pool level | `("Pool", (assetType, default, prepay, recovery, extra), None, None)` |
+| Scope | Syntax |
+|-------|--------|
 | By index | `("ByIndex", ([0,1], assump1), ([2,3], assump2))` |
 | By obligor tag | `("ByObligor", ("ByTag", ["GroupA"], "TagEq", assump), ("ByDefault", assump))` |
 | By obligor id | `("ByObligor", ("ById", ["OB001"], assump), ("ByDefault", assump))` |
-| By obligor field | `("ByObligor", ("ByField", [("field", "in", ["A"])], assump), ("ByDefault", assump))` |
-| By pool name | `("ByName", {"poolA": (assump, None, None)})` |
-| By pool id | `("ByPoolId", {"poolA": assump})` |
+| By obligor field | `("ByObligor", ("ByField", [("field","in",["A"])], assump), ("ByDefault", assump))` |
+| By pool name | `("ByName", {"PoolA": (assump, None, None)})` |
+| By pool id | `("ByPoolId", {0: assump})` |
+
+Lease extras: `("byContinuation", p)`, `("byTermination", p)`, `("days", 30)`,
+`("byAnnualRate", -0.3)`, `("byDate", "2026-09-20")`, `("byExtTimes", 3)`,
+`("byRateVec", -0.25, -0.22, -0.1)`, `("earlierOf", date, N)`,
+`("laterOf", date, N)`.
 
 ---
 
-## 11. Run Assumption Patterns
+## 13. Run assumptions
+
+A list of tuples controlling the simulation.
 
 | Assumption | Syntax |
 |------------|--------|
 | Stop at date | `("stop", "2030-01-01")` |
 | Clean-up call | `("call", ("CleanUp", ("poolBalance", 200)))` |
 | Conditional call | `("call", ("if", condition))` |
-| Interest flat | `("interest", ("SOFR3M", 0.05))` |
-| Interest curve | `("interest", ("SOFR3M", [["2021-01-01", 0.05], ["2022-01-01", 0.06]]))` |
+| Modern call | `("callWhen", options...)` |
+| Flat rate | `("interest", ("SOFR3M", 0.05))` |
+| Rate curve | `("interest", ("SOFR3M", [["2021-01-01", 0.05], ["2022-01-01", 0.06]]))` |
 | Revolving | `("revolving", ["constant", asset], poolAssumpForNew)` |
-| Pricing PV | `("pricing", {"date": "2021-08-22", "curve": [...]})` |
-| Pricing Z-spread | `("pricing", {"bonds": {"A1": ("2021-07-26", 100)}, "curve": [...]})` |
-| Pricing IRR hold | `("pricing", {"IRR": {"B": ("holding", [(date, -amt)], bal)}})` |
-| Pricing IRR buy | `("pricing", {"IRR": {"B": ("buy", date, ("byFactor", 0.99), ("byCash", 200))}})` |
-| Inspect | `("inspect", [datePattern, formula], ...)` |
+| Revolving map | `("revolving", {"PoolX": (pool, assumps)})` |
+| Pricing (PV) | `("pricing", {"date": "2021-07-26", "curve": [["2021-07-26", 0.04]]})` |
+| Pricing (Z-spread) | `("pricing", {"bonds": {"A1": ("2021-07-26", 100)}, "curve": [...]})` |
+| Pricing (IRR hold) | `("pricing", {"IRR": {"B": ("holding", [("2021-04-01", -500)], 500)}})` |
+| Pricing (IRR sell) | `("pricing", {"IRR": {"A1": ("holding", [("2021-04-01", -500)], 500, "2021-08-19", ("byFactor", 1.0))}})` |
+| Pricing (IRR buy) | `("pricing", {"IRR": {"A1": ("buy", "2021-08-01", ("byFactor", 0.99), ("byCash", 200))}})` |
+| Inspect | `("inspect", [datePattern, formula, ...])` |
 | Report | `("report", {"dates": "MonthEnd"})` |
-| Fire trigger | `("fireTrigger", [(date, location, name)])` |
+| Fire trigger | `("fireTrigger", [("2021-10-01", "AfterCollect", "name")])` |
 | Refinance | `("refinance", ("byRate", date, account, bond, rateType))` |
 | Issue bond | `("issueBond", date, group, account, bondDetail)` |
-| Estimate expense | `("estimateExpense", ("tsFee", [[date, amount]]))` |
+| Estimate expense | `("estimateExpense", ("tsFee", [["2021-09-01", 10]]))` |
 | Make whole | `("makeWhole", date, precision, [[factor, spread], ...])` |
+
+The pricing curve's first date must be **on or after** the pricing date.
 
 ---
 
-## 12. Root Finder Reference
+## 14. Root finder
 
-### 12.1 Tweaks (What to Stress)
+```python
+api.runRootFinder(deal, poolAssump, runAssump, (tweak, stopCondition))
+api.runFirstLoss(deal, bondName, poolAssump)   # shorthand for stressDefault + bondIncurLoss
+```
+
+### 14.1 Tweaks
 
 | Tweak | Syntax |
 |-------|--------|
-| Stress defaults | `("stressDefault", min, max)` |
-| Stress prepay | `("stressPrepayment", min, max)` |
-| Max spread | `("maxSpread", "bondName")` |
-| Split balance | `("splitBalance", "bond1", "bond2")` |
-| First loss | `("firstLoss", "bondName")` |
+| Stress defaults | `("stressDefault", lo, hi)` (or bare `"stressDefault"`) |
+| Stress prepay | `("stressPrepayment", lo, hi)` |
+| Max spread | `("maxSpread", "bondName")` (optionally `, lo, hi`) |
+| Split balance | `("splitBalance", "bond1", "bond2")` (optionally `, lo, hi`) |
 
-### 12.2 Stop Conditions
+### 14.2 Stop conditions
 
 | Condition | Syntax |
 |-----------|--------|
 | Bond any loss | `("bondIncurLoss", "B")` |
-| Bond principal loss | `("bondIncurPrinLoss", "A1")` |
-| Bond interest loss | `("bondIncurIntLoss", "A1")` |
-| Bond principal loss > threshold | `("bondIncurPrinLoss", "A1", 0.01)` |
-| Bond interest loss > threshold | `("bondIncurIntLoss", "A1", 0.005)` |
-| Bond prices at par | `("bondPricingEqOrigin", "A1")` |
-| Bond meets IRR | `("bondMetTargetIrr", "A1", 0.05)` |
+| Bond principal loss | `("bondIncurPrinLoss", "A1", amount)` |
+| Bond interest loss | `("bondIncurIntLoss", "A1", amount)` |
+| Prices at par | `("bondPricingEqOriginBal", "A1", bool, bool)` |
+| Meets target IRR | `("bondMetTargetIrr", "A1", 0.05)` |
+| Balance formula | `("byFormula", formula, target)` |
+
+`runFirstLoss` uses `"stressDefault"` over `[1, 500]` and stops at
+`("bondIncurLoss", bondName)`. A senior bond may never incur loss, so the root
+finder reports `Not able to bracket the root` — choose a tranche that can take
+loss.
 
 ---
 
-## 13. Trigger Reference
+## 15. API methods
 
-### 13.1 Trigger Points
+| Method | Purpose |
+|--------|---------|
+| `api.run(deal, poolAssump, runAssump, read=True, showWarning=True, rtn=[], debug=False)` | Single run |
+| `api.runByScenarios(deal, poolAssump, runAssump)` | Multiple pool scenarios |
+| `api.runByDealScenarios(deal, poolAssump, runAssump)` | Multiple run scenarios |
+| `api.runStructs(deals, poolAssump, nonPoolAssump, runAssump)` | Multiple structures |
+| `api.runByCombo(dealMap, poolAssump, runAssump)` | Cross-product |
+| `api.runPool(pool, poolAssump, rateAssump)` | Pool only; returns `{poolName: {"flow": DataFrame, ...}}` |
+| `api.runPoolByScenarios(pool, poolAssump, rateAssump)` | Pool scenarios |
+| `api.runAsset(date, assets, poolAssump, rateAssump, pricing)` | Single asset |
+| `api.runFirstLoss(deal, bondName, poolAssump, runAssump)` | First-loss stress |
+| `api.runRootFinder(deal, poolAssump, runAssump, p)` | Root finder |
+| `api.runDates(d, dp, eDate)` | Dates from a date pattern |
 
-| Point | Fires when |
-|-------|-----------|
-| `BeforeCollect` | Before pool cash collection |
-| `AfterCollect` | After pool cash collection |
-| `BeforeDistribution` | Before waterfall execution |
-| `AfterDistribution` | After waterfall execution |
-| `InDistribution` | During waterfall (between actions) |
-| `EndOfPoolCollection` | End of pool collection cycle |
+`debug=True` returns the request JSON without sending it.
 
-### 13.2 Trigger Effects
-
-| Effect | Syntax |
-|--------|--------|
-| Change status | `("newStatus", "Accelerated")` |
-| Accrue fees | `["accrueFees", "fee1"]` |
-| New reserve balance | `["newReserveBalance", "acc1", {"fixReserve": 1000}]` |
-| Add new trigger | `[("newTrigger", {...})]` |
-| Multiple effects | `["Effects", effect1, effect2]` |
-| Execute actions | `("actions", action1, action2)` |
-| Swap waterfall | `["swapWaterfall", "accelerated"]` |
-
----
-
-## 14. Account Reserve Types
-
-| Reserve Type | Syntax |
-|--------------|--------|
-| Fixed amount | `{"fixReserve": 1000}` or `("fix", 1000)` |
-| Formula target | `{"targetReserve": [formula, pct]}` or `("target", formula, pct)` |
-| Max of targets | `{"max": [reserve1, reserve2]}` |
-| Conditional | `{"when": [condition, ifTrue, ifFalse]}` |
-| Nested formula | `("target", ("max", ("*", ("poolBalance",), 0.01), ("const", 1000)))` |
-
----
-
-## 15. API Methods Reference
-
-| Method | Purpose | Returns |
-|--------|---------|---------|
-| `api.run(deal, poolAssump, runAssump, read)` | Run single deal | Result dict |
-| `api.runByScenarios(deal, poolAssump, runAssump)` | Multi pool scenarios | Dict of results |
-| `api.runByDealScenarios(deal, runAssump)` | Multi deal scenarios | Dict of results |
-| `api.runStructs(deals, poolAssump, runAssump)` | Multiple structures | Dict of results |
-| `api.runByCombo(deals, poolAssump, runAssump)` | Combinatorial | Nested dict |
-| `api.runPool(pool, poolAssump)` | Pool only | (cashflow, stats) |
-| `api.runAsset(date, assets, poolAssump)` | Single asset | (cashflow, stats, pricing) |
-| `api.runRootFinder(deal, poolAssump, runAssump, (tweak, stop))` | Find breakeven | (factor, result) |
-
-### Helper Functions
+### Helper functions
 
 | Function | Purpose |
 |----------|---------|
-| `readBondsCf(r['bonds'])` | Combine bond cashflows |
-| `readFeesCf(r['fees'])` | Combine fee cashflows |
-| `readAccsCf(r['accounts'])` | Combine account cashflows |
-| `readInspect(r['result'])` | Joint inspection reader |
-| `unifyTs(r['result']['inspect'].values())` | Unify time series |
-| `toHtml(r, "file.html")` | Export HTML report |
-| `toExcel(r, "file.xlsx")` | Export Excel report |
-| `compResult(r1, r2, names=(...))` | Compare two results |
-| `readAeson(raw)` | Parse raw response |
-| `mkDealsBy(deal, plan)` | Build deal variants |
-| `prodDealsBy(deal, ...)` | Cartesian product deals |
-| `prodAssumpsBy(base, ...)` | Cartesian product assumptions |
+| `readBondsCf(r)`, `readFeesCf(r)`, `readAccsCf(r)` | Combine cashflows |
+| `readInspect(r['result'])` | Joint inspection frame |
+| `readLedgers(r)` | Ledger balances / transactions |
+| `unifyTs(r['result']['inspect'].values())` | Unify inspection series |
+| `readFlowsByScenarios(rs)`, `readMultiFlowsByScenarios(rs)`, `readFieldsByScenarios(rs)` | Multi-result readers |
+| `toHtml(r, path)`, `toExcel(r, path)` | Export |
+| `compResult(r1, r2, names=...)` | Compare results |
+| `mkDealsBy(deal, plan)`, `prodDealsBy(deal, ...)`, `prodAssumpsBy(base, ...)` | Build variants |
 | `runYieldTable(api, deal, bond, assumps, pricing)` | Yield table |
-| `viz(deal)` | Graphviz visualization |
-| `irr(bondCf, init=(date, amount))` | IRR calculation |
+| `viz(deal)` (`absbox.local.chart`) | Graphviz diagram |
 
 ---
 
-## 16. Result Structure Reference
+## 16. Result structure
 
 ```python
 r = api.run(deal, poolAssump=..., runAssump=..., read=True)
 
-# Cashflow DataFrames
-r['pool']['flow']              # Pool cashflow
-r['pool_outstanding']['flow']  # Uncollected pool (v0.50+)
-r['bonds']['A1']               # Bond cashflow
-r['accounts']['acc01']         # Account transactions
-r['fees']['trusteeFee']        # Fee cashflow
-
-# Non-Cashflow
-r['result']['status']          # Deal status transitions
-r['result']['waterfall']       # Waterfall execution log
-r['result']['inspect']         # Inspected variable values
-r['result']['logs']            # Error/Warning messages
-r['result']['report']          # Financial reports (if requested)
-r['result']['report']['cash']  # Cash inflow/outflow report
-r['result']['report']['balanceSheet']  # Balance sheet snapshots
-
-# Pricing (if pricing assumption provided)
-r['pricing']                   # WAL, duration, yield per bond
-
-# Ledgers
-r['ledgers']                   # Ledger balances and transactions
+r['pool']['flow']                 # pool cashflow (per pool: r['pool']['flow']['PoolConsol'])
+r['pool_outstanding']['flow']     # uncollected pool
+r['bonds']['A1']                  # columns: balance, interest, principal, rate, cash,
+                                  # intDue, intOverInt, factor, memo
+r['accounts']['acc01']            # accounts is a dict keyed by account name
+r['fees']['trusteeFee']           # fees is a dict keyed by fee name
+                                  # (columns: balance, payment, due)
+r['result']['logs']               # warnings / errors — read first
+r['result']['status']             # status transitions
+r['result']['waterfall']          # waterfall execution log
+r['result']['waterfallInspect']   # inspect-action output
+r['result']['report']['cash']     # if ("report", ...) requested
+r['result']['report']['balanceSheet']
+r['pricing']['summary']           # IRR / WAL / spread per bond
+r['pricing']['breakdown']['A1']   # pricing detail
+r['ledgers']
 ```
+
+For `runByScenarios` the return value is a dict keyed by scenario name; each
+value has the same structure as above.
+
+---
+
+## 17. Constants
+
+**Day count:** `DC_30E_360`, `DC_30Ep_360`, `DC_ACT_360`, `DC_ACT_365`,
+`DC_ACT_365A`, `DC_ACT_365L`, `DC_NL_365`, `DC_ACT_365F`, `DC_ACT_ACT`,
+`DC_30_360_ISDA`, `DC_30_360_German`, `DC_30_360_US`.
+
+**Rate indexes:** `LPR5Y`, `LPR1Y`, `LIBOR1M/3M/6M/1Y`, `USTSY1Y`–`USTSY30Y`,
+`USCMT1Y`, `PRIME`, `COFI`, `SOFR1M/3M/6M/1Y`, `EURIBOR1M/3M/6M/12M`, `IRPH`,
+`SONIA`.
+
+**Periods:** `Daily`, `Weekly`, `Monthly`, `Quarterly`, `SemiAnnually`,
+`Annually`.
+
+**Statuses:** `PreClosing`, `Warehousing`, `RampUp`, `Revolving`, `Amortizing`,
+`Accelerated`, `Defaulted`, `Called`, `Ended`.
