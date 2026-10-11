@@ -12,6 +12,7 @@ library and the Hastructure engine.
 | `REFERENCE.md` | Exhaustive lookup tables: formulas, actions, constants, API |
 | `golden-paths/` | Verified end-to-end recipes |
 | `evals/` | Behavior tests for the skill |
+| `doc/contract-audit.md` | Maintenance: AbsBox↔Hastructure contract audit routine |
 | `doc/CHANGELOG.md` | Release history |
 
 ## Setup

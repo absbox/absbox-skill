@@ -1,5 +1,15 @@
 # absbox Skill Changelog
 
+## v4.1.0 — 2026-10-12
+- 新增维护流程：AbsBox ↔ Hastructure 编码契约审计（`doc/contract-audit.md`）
+  - `scripts/contract_audit.py`：对比 AbsBox tag 与 Hastructure 构造函数名，
+    输出疑似编码不匹配
+  - 审计清单：`contents` 参数个数/顺序、record 字段名、响应行顺序
+  - 记录方法学：Hastructure 用 `deriveJSON defaultOptions`
+    （`TaggedObject "tag" "contents"`），`swagger.json` 对部分 sum type 有缺失，
+    以 `.hs` 源码为准
+- 由该审计产出 AbsBox issue #109（7 处 tag/形状不匹配）
+
 ## v4.0.1 — 2026-09-27
 - 对齐仓库 AbsBox 0.52.3（用客户端解析器 mkDeal/mkDs/mkAsset/mkBondRate/mkFee/
   mkNonPerfAssumps 实测）

@@ -8,7 +8,7 @@ description: >-
   projections. Python 3.10+.
 metadata:
   author: absbox
-  version: "4.0.1"
+  version: "4.1.0"
 license: Apache-2.0
 ---
 
@@ -21,6 +21,8 @@ it loaded. Pull detail from the files it points to.
 - `REFERENCE.md` — exhaustive lookup tables (formulas, actions, constants, API).
 - `golden-paths/` — verified end-to-end recipes. **Read the matching one before
   improvising a multi-step script.**
+- `doc/contract-audit.md` — maintenance routine: keep AbsBox tags/shapes in sync
+  with the Hastructure engine types.
 - `README.md` — human quick start.
 - `doc/CHANGELOG.md` — release history tied to engine versions.
 
@@ -256,3 +258,21 @@ sending it — the cheapest way to validate a deal map offline.
    no effect.
 5. `viz(deal)` (from `absbox.local.chart`) renders a Graphviz diagram.
 6. Compare pricing (WAL/duration/yield) against a benchmark.
+
+## Maintenance routine — cross-repo contract audit
+
+AbsBox is a thin wrapper over the Haskell `Hastructure` types, so a renamed or
+reshaped engine type silently breaks the DSL. Before a release, and whenever the
+engine bumps a **minor** version, re-run the contract audit against the
+Hastructure source (not `swagger.json`, which is lossy):
+
+```bash
+python scripts/contract_audit.py \
+    --absbox ~/repo/AbsBox --hastructure ~/repo/Hastructure
+```
+
+It diffs every AbsBox tag literal against the Hastructure constructors. Then
+follow `doc/contract-audit.md` for the manual checks the script cannot do:
+`contents` arity/order, record field names, and response row orders. File one
+consolidated issue with `file:line` evidence and add offline regression tests in
+`absbox/tests/test_parsers.py`.
