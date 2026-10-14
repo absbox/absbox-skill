@@ -20,6 +20,8 @@
   `runPoolByScenarios`、MultiResult 读取器
 - 新增：8 个已验证 golden path + 索引
 - 新增：5 个行为 eval
+- 新增：npm/npx 安装 — `npx absbox-skill` 将 skill 复制到
+  opencode / Claude Code / `~/.agents` 的 skill 目录
 - 新增：TLS/响应截断、stated 过短导致 deal 立即结束、trigger 不应在
   PreClosing 触发等 pitfall
 

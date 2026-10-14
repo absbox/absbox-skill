@@ -1,0 +1,36 @@
+name: publish
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # npm trusted publishing (OIDC) + provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - name: Verify tag matches package version
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          pkg="v$(node -p "require('./package.json').version")"
+          ref="${{ github.event.release.tag_name || github.ref_name }}"
+          if [ "$pkg" != "$ref" ]; then
+            echo "::error::tag $ref does not match package.json version $pkg"
+            exit 1
+          fi
+      - name: Ensure npm supports trusted publishing
+        run: npm install -g npm@latest
+      - name: Publish to npm
+        run: npm publish --provenance --access public

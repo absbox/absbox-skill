@@ -4,6 +4,53 @@ A skill for modeling and projecting structured finance deals (ABS, MBS, CLO,
 SRT) with the [absbox](https://absbox-doc.readthedocs.io/en/latest/) Python
 library and the Hastructure engine.
 
+## Install (npm / npx)
+
+The skill ships as the [`absbox-skill`](https://www.npmjs.com/package/absbox-skill)
+npm package. The CLI copies the skill files into the skill directory of whichever
+agent you use (opencode, Claude Code, or the shared `~/.agents` convention).
+
+```bash
+npx absbox-skill                 # global install into every detected agent
+npx absbox-skill --target claude # Claude Code only
+npx absbox-skill --local         # into this project's ./.opencode, ./.claude, ./.agents
+npx absbox-skill --list          # show destinations and which are detected
+npx absbox-skill --uninstall     # remove from global installs
+```
+
+Or install it globally so it also registers on install:
+
+```bash
+npm install -g absbox-skill
+```
+
+### Install straight from GitHub
+
+No npm publish needed — `npm`/`npx` can build and run the package directly from
+the repository (it has no build step and no dependencies):
+
+```bash
+npx github:absbox/absbox-skill                 # run the installer from main
+npx github:absbox/absbox-skill --target claude # Claude Code only
+npx github:absbox/absbox-skill#v4.0.0          # pin a tag / branch / commit
+npx https://github.com/absbox/absbox-skill     # full-URL form
+npm install -g github:absbox/absbox-skill      # global install + auto-register
+```
+
+Flags: `-g/--global`, `-l/--local`, `-t/--target <opencode,claude,agents>`,
+`--dir <path>`, `-f/--force` (overwrite), `--uninstall`, `--list`, `--auto`,
+`-q/--quiet`.
+
+Destination layout (skill folder is named `absbox`, from `SKILL.md`):
+
+| Agent | Global | Project |
+|-------|--------|---------|
+| opencode | `~/.config/opencode/skills/absbox/` | `./.opencode/skills/absbox/` |
+| Claude Code | `~/.claude/skills/absbox/` | `./.claude/skills/absbox/` |
+| shared agents | `~/.agents/skills/absbox/` | `./.agents/skills/absbox/` |
+
+Restart the agent after installing so it picks up the skill.
+
 ## Files
 
 | File | Purpose |
@@ -14,7 +61,7 @@ library and the Hastructure engine.
 | `evals/` | Behavior tests for the skill |
 | `doc/CHANGELOG.md` | Release history |
 
-## Setup
+## Python dependencies
 
 ```bash
 pip install absbox          # Python 3.10+
