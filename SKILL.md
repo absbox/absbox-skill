@@ -8,7 +8,7 @@ description: >-
   projections. Python 3.10+.
 metadata:
   author: absbox
-  version: "4.0.0"
+  version: "4.1.0"
 license: Apache-2.0
 ---
 
@@ -64,15 +64,16 @@ api = API(EnginePath.LOCAL)                      # localhost:8081 (Docker)
 api = API("https://absbox.org/api/latest", 'english')
 ```
 
-`EnginePath` shortcuts: `DEV`, `PROD`, `LOCAL`, `LDN_DEV`, `LDN_PROD`,
-`NY_DEV`, `NY_PROD`, `USE_ENV` (reads env var `ABSBOX_SERVER`). `PROD` =
+`EnginePath` shortcuts: `DEV`, `PROD`, `LOCAL`, `NY_DEV`, `NY_PROD`,
+`USE_ENV` (reads env var `ABSBOX_SERVER`). `PROD` =
 `https://absbox.org/api/latest`.
 
-**Version rule:** the client and engine must share the same **MAJOR.MINOR**
-version; the patch may differ. `check=True` (the default) enforces this at
-connect and prints `local lib:x.y.z, server:x.y.z`. `check=False` disables the
-check — fine for experiments, not for reproducible work. Inspect at runtime
-with `api.server_info` and `api.version`.
+**Version rule:** `check=True` (the default) compares only the **minor
+(tenth) segment** of client vs engine version — the major and patch segments
+are ignored. `0.52.9` works with server `0.52.13`. It enforces this at connect
+and prints `local lib:x.y.z, server:x.y.z`. `check=False` disables the check —
+fine for experiments, not for reproducible work. Inspect at runtime with
+`api.server_info` and `api.version`.
 
 Local engine:
 
@@ -147,19 +148,21 @@ deal immediately with no cashflow.
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `name` | yes | Deal identifier |
-| `dates` | yes | cutoff/closing/firstPay/payFreq/poolFreq/stated |
+| `name` | no | Deal identifier (defaults `""`) |
+| `dates` | yes | cutoff/closing/firstPay/payFreq/poolFreq/stated (aliases/`cust` in `REFERENCE.md` §19) |
 | `pool` | yes | `{"assets": [...]}`; multi-pool = `{"PoolA": {...}, "PoolB": {...}}` |
 | `accounts` | yes | Cash accounts, optional reserve targets and rates |
 | `bonds` | yes | Tranches; nested map = bond group |
 | `waterfall` | yes | Actions keyed by deal status |
-| `collect` | yes | Maps pool sources to accounts |
-| `status` | yes | `(initial, next)` e.g. `("PreClosing", "Amortizing")` |
+| `collect` | yes | Maps pool sources to accounts (defaults `[]`) |
+| `status` | no | `(initial, next)` e.g. `("PreClosing", "Amortizing")`; defaults `"Amortizing"` |
 | `fees` | no | Service/trustee fees |
 | `triggers` | no | Performance triggers by point |
-| `liqFacility` | no | Liquidity facilities |
-| `rateSwap` | no | Swaps and caps |
+| `liqFacility` | no | Liquidity facilities (`liqProvider` alias); shape in `REFERENCE.md` §19 |
+| `rateSwap` | no | Swaps |
+| `rateCap` | no | Caps (its own key — not part of `rateSwap`); shape in `REFERENCE.md` §19 |
 | `ledgers` | no | Booking ledgers |
+| `stats` | no | Integer deal stats (`BondPaidPeriod`, `PoolCollectedPeriod`) |
 
 ## Where to look next
 
@@ -179,6 +182,7 @@ deal immediately with no cashflow.
 | Revolving pool | `golden-paths/06-revolving.md` |
 | Real loan tape | `golden-paths/07-loan-tape.md` |
 | Fees, reserves, ledgers | `golden-paths/08-fees-reserves-ledgers.md` |
+| Deal library (login/query/run stored deals) | `REFERENCE.md` §18 |
 
 ## Running & reading
 
@@ -196,19 +200,25 @@ dates = api.runDates("2021-01-01", "MonthEnd", "2022-01-01")
 ```
 
 Result keys: `r['pool']['flow']`, `r['bonds'][name]`, `r['accounts'][name]`,
-`r['fees']`, `r['result']['logs' | 'status' | 'waterfall' | 'inspect' | 'report']`,
-`r['pricing']`. Helpers: `readBondsCf`, `readFeesCf`, `readAccsCf`,
-`readInspect`, `readLedgers`, `unifyTs`, `readFlowsByScenarios`,
-`readMultiFlowsByScenarios`, `readFieldsByScenarios`, `toHtml`, `toExcel`,
-`compResult`. See `REFERENCE.md` §15–16.
+`r['fees']`, `r['result']['logs' | 'status' | 'waterfall' | 'inspect' |
+'report']`, `r['pricing']`; component statements at top level:
+`r['triggers']`, `r['liqProvider']`, `r['rateSwap']`, `r['rateCap']`,
+`r['ledgers']`, `r['agg_accounts']`, `r['_deal']`. With `rtn=["AssetLevelFlow"]`
+on `api.run` you also get per-asset projections under
+`r['pool']['AssetLevelFlow']`. Helpers: `readBondsCf`,
+`readFeesCf`, `readAccsCf`, `readInspect`, `readLedgers`, `unifyTs`,
+`readFlowsByScenarios`, `readMultiFlowsByScenarios`, `readFieldsByScenarios`,
+`toHtml`, `toExcel`, `compResult`. See `REFERENCE.md` §15–16.
 
 Pass `debug=True` to `api.run`/`runRootFinder` to get the request JSON without
 sending it — the cheapest way to validate a deal map offline.
 
 ## Pitfalls
 
-1. **Version skew** — client and engine must share MAJOR.MINOR. `check=False`
-   skips the check; don't ship results built with it.
+1. **Version skew** — connect does a real check by default: the client refuses
+   to talk to an engine whose version's **minor segment** differs from its own
+   (major/patch ignored). `check=False` skips the check; don't ship results
+   built with it.
 2. **`read` defaults to `True`** — pass `read=False` only when you want raw
    JSON. The common mistake is expecting DataFrames after `read=False`.
 3. **`stated` too short ends the deal at closing** — extend stated maturity

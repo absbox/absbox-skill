@@ -1,8 +1,8 @@
 # absbox Complete Reference
 
 Lookup tables and exact syntax for the absbox structured finance library.
-Verified against `absbox` 0.52.x / Hastructure 0.52.x. Documentation:
-https://absbox-doc.readthedocs.io/en/latest/
+Verified against `absbox` 0.52.9 (wrapper) / Hastructure 0.52.13 (engine).
+Documentation: https://absbox-doc.readthedocs.io/en/latest/
 
 > Conventions: formulas are tuples with a trailing comma (`("poolBalance",)`).
 > Waterfall/collect/effect actions are lists. Enums are dict-wrapped
@@ -16,21 +16,26 @@ https://absbox-doc.readthedocs.io/en/latest/
 
 | Enum | URL |
 |------|-----|
-| `DEV` | `https://absbox.org/api/dev` |
-| `PROD` | `https://absbox.org/api/latest` |
-| `LOCAL` | `http://localhost:8081` |
-| `LDN_DEV` | `https://ldn.spv.run/api/dev` |
-| `LDN_PROD` | `https://ldn.spv.run/api/latest` |
-| `NY_DEV` | `https://spv.run/api/dev` |
-| `NY_PROD` | `https://spv.run/api/latest` |
+| `DEV` | `https://absbox.org/api/dev` (China server) |
+| `PROD` | `https://absbox.org/api/latest` (China server) |
+| `LOCAL` | `http://localhost:8081` (Docker engine) |
+| `NY_DEV` | `https://spv.run/api/dev` (New York server) |
+| `NY_PROD` | `https://spv.run/api/latest` (New York server) |
 | `USE_ENV` | resolves env var `ABSBOX_SERVER` |
 
+There are no London endpoints in 0.52.x.
+
 ```python
-API(url, lang='english', check=True)
+API(url, lang='english', check=True, verify=False)
 ```
 
-`check=True` (default) requires the client and engine to share MAJOR.MINOR.
-Read `api.server_info` / `api.version` for the connected versions.
+The version check (`check=True`, default) compares only the **minor (tenth)
+segment** of client vs engine version; major/patch are ignored — e.g. client
+0.52.9 happily talks to server 0.52.13. It prints
+`✅Connected, local lib:x.y.z, server:x.y.z` on success and raises
+`VersionMismatch` otherwise. Read `api.server_info` / `api.version` for the
+connected versions. `check=False` disables all of this. `verify=False`
+(default) keeps TLS verification off for self-signed engine servers.
 
 ### 1.2 Endpoints / request types (internal)
 
@@ -56,10 +61,10 @@ Read `api.server_info` / `api.version` for the connected versions.
 | `("cumPoolDefaultedBalance",)` | float | Cumulative defaulted balance |
 | `("cumPoolNetLoss",)` | float | Cumulative net loss |
 | `("cumPoolRecoveries",)` | float | Cumulative recoveries |
-| `("cumPoolCollection",field1,...)` | float | Cumulative collection on fields |
-| `("cumPoolCollectionTill",N,field)` | float | Cumulative collection until period N |
-| `("curPoolCollection",field1,...)` | float | Current-period collection sum |
-| `("schedulePoolValuation",pricing,pool)` | float | Schedule cashflow valuation |
+| `("cumPoolCollection",poolSel,field1,...)` | float | Cumulative collection on fields; `poolSel` = `None` (all pools) or a list of pool names |
+| `("cumPoolCollectionTill",poolSel,N,fields...)` | float | Cumulative collection up to period `N` |
+| `("curPoolCollection",poolSel,field1,...)` | float | Current-period collection sum; same `poolSel` form |
+| `("schedulePoolValuation",pricingMethod,poolName...)` | float | Schedule cashflow valuation (pricing method first, then pool names) |
 
 ### 2.2 Bond
 
@@ -96,7 +101,7 @@ Read `api.server_info` / `api.version` for the connected versions.
 
 | Formula | Returns |
 |---------|---------|
-| `("cumPoolDefaultedRate",)` / `("cumPoolDefaultedRate",N)` | Cumulative default rate |
+| `("cumPoolDefaultedRate",)` | Cumulative default rate (no args; `("cumPoolDefaultedRateTill", N, poolNames...)` for until-period-N — `N` comes first) |
 | `("cumPoolNetLossRate",)` | Cumulative net loss rate |
 | `("poolWaRate",)` / `("bondWaRate","A","B")` | Weighted-average coupon |
 | `("borrowerNumber",)` | int |
@@ -107,7 +112,7 @@ Read `api.server_info` / `api.version` for the connected versions.
 | `("isMostSenior","A",["B","C"])` | bool |
 | `("status","Amortizing")` | bool |
 | `("allTest",True,bool1,...)` / `("anyTest",True,bool1,...)` | bool |
-| `("alwaysTrue",)` / `("alwaysFalse",)` | bool |
+| `("always", True)` / `("always", False)` | bool (constant) |
 
 ### 2.5 Arithmetic / combination
 
@@ -141,7 +146,7 @@ Read `api.server_info` / `api.version` for the connected versions.
 | Any (OR) | `["any", cond1, cond2]` |
 | Not | `["not", cond]` |
 | Against curve | `[formula, ">", [["2021-01-01",0.03],["2022-01-01",0.05]]]` |
-| Always true/false | `("alwaysTrue",)` / `("alwaysFalse",)` |
+| Always true/false | `("always", True)` / `("always", False)` |
 
 Date equality `["=", "YYYY-MM-DD"]` is commonly used inside `If` to fire an
 action on a specific pay date.
@@ -158,7 +163,7 @@ action on a specific pay date.
 | Daily | `"Daily"` |
 | Day of month | `["DayOfMonth", D]` |
 | Month/day of year | `["MonthDayOfYear", M, D]` |
-| Weekday | `["Weekday", N]` (0=Mon) |
+| Weekday | `["Weekday", N]` (0 = Sunday, 5 = Friday) |
 | Custom dates | `["CustomDate", "2021-01-01", "2021-06-01"]` |
 | Every N months | `["EveryNMonth", "2021-01-01", N]` |
 | After date | `["After", "2021-01-01", dp]` |
@@ -216,7 +221,12 @@ penalty types (`{"byTerm": [...]}`, `{"fixPct": [...]}`, `{"sliding": [...]}`,
   "status": "Current"}]
 ```
 
-Types: `"i_p"` (interest-only then principal), `"Schedule"` (custom schedule).
+Types: `"i_p"` (interest-only then principal), `"Level"`/`"Even"`, or a
+custom schedule: `("Schedule", [[date, remaining-ratio], ...])` or
+`("Schedule", rows, datePattern)`, e.g.
+`("Schedule", [["2025-01-01", 0.6], ["2030-01-01", 0.0]], "MonthEnd")` —
+values are remaining-balance ratios by date. A bare `"Schedule"` string is
+**not** a valid amortization type.
 
 ### 5.3 Lease
 
@@ -247,11 +257,12 @@ Step-up: `("flatRate", r)`, `("flatAmount", a)`, `("byRates", ...)`,
  {"start": "2023-11-01", "originBalance": 1000000, "originTerm": 120,
   "residual": 100000, "period": "Monthly", "amortize": "Straight",
   "capacity": ("Fixed", 24*25*120*30)},
- {"remainTerm": 120, "balance": 30000}]
+ {"remainTerm": 120, "currentBalance": 30000}]
 ```
 
-`amortize`: `"Straight"` / `"DecliningBalance"`. `capacity`:
-`("Fixed", v)` or `("ByTimeSeries", [[date, v], ...])`.
+The current dict needs **`currentBalance`** (not `balance`). `amortize`:
+`"Straight"` / `"DecliningBalance"`. `capacity`: `("Fixed", v)` or
+`("ByTerm", ...)`.
 
 ### 5.6 Invoice / Receivable
 
@@ -269,13 +280,20 @@ Fee types: `("Fixed", amount)`, `("FixedRate", rate)`,
 ### 5.7 Projected cashflows
 
 ```python
+# PDeal: begin (balance, date), scheduled rows, then the row frequency
 ["ProjectedCashflow",
- [["2024-01-01", 100, 50], ["2024-02-01", 100, 45]], "MonthEnd"]
-# each row: [date, principal, interest]
+ 120000, "2024-01-01",
+ [["2024-02-01", 0, 500], ["2024-03-01", 10000, 497]],   # [date, principal, interest]
+ "MonthEnd"]
+# row = (date, principal, interest); treat these as *scheduled* flows
 
+# PDeal via priced factors: shares of the pool run with a fixed vs floating rate
 ["ProjectedByFactor",
- [["2024-01-01", 10000], ["2024-06-01", 8000]], "MonthEnd",
- (0.02, 0.05), None]   # (default rate, prepay rate), extra
+ [["2024-01-01", 100000], ["2024-06-01", 96000]], "MonthEnd",   # [date, balance]
+ (0.7, 0.05),                                                  # (fix share, fix rate)
+ [(0.3, 0.045, 0.01, "SOFR1M")]]   # float rows: (share, rate, spread, index)
+# fix share + sum of float shares MUST equal 1.0
+# float rows additionally require ("interest", (index, ...)) in the run assumptions
 ```
 
 ---
@@ -302,8 +320,11 @@ Fee types: `("Fixed", amount)`, `("FixedRate", rate)`,
 | By bond period | `{"flowByBondPeriod": [[index, amount], ...]}` |
 | By pool period | `{"flowByPoolPeriod": [[index, amount], ...]}` |
 
-Optional keys: `"feeStart"`, `"feeEnd"`. A fee must be paid by a waterfall
-action (`payFee`, `calcAndPayFee`, ...) to affect cashflow.
+**`"feeStart"` is required** on every fee since 0.45.x; it raises
+`AbsboxParseError: feeStart not found` without it. Optional keys: `feeDueDate`,
+`feeDue`, `feeArrears`, `feeLastPaidDate` (there is no `"feeEnd"` key). A fee
+must be paid by a waterfall action (`payFee`, `calcAndPayFee`, ...) to affect
+cashflow.
 
 ---
 
@@ -326,12 +347,12 @@ Optional: `maturityDate`, `lastAccrueDate`, `dueInt`. Multi-rate bond:
 
 | Type | Syntax |
 |------|--------|
-| Sequential | `{"Sequential": None}` |
+| Sequential | `{"Sequential": None}` (`"Seq"` / `"Sequential"` also work as bare strings) |
 | PAC | `{"PAC": [["2021-07-20", 800]], "anchorBonds": ["A2"]}` |
 | Lockout | `{"Lockout": "2023-01-01"}` |
 | Equity | `{"Equity": None}` |
-| IO | `{"IO": None}` |
-| Z-bond | `{"Z": None}` |
+| IO | `"IO"` — bare string only; `{"IO": None}` is **not** a valid type |
+| Z-bond | `{"Z": None}` (`"Z"`, `"Z-Tranche"` also work) |
 | Balance schedule | `{"BalanceByPeriod": [[0, 900], [5, 800], [6, 0]]}` |
 
 ### 7.3 Bond groups
@@ -349,22 +370,27 @@ Groups are **structural** — nest bonds under the group name:
 Group waterfall actions then reference `"Senior"` / `"Mezz"`. A `"bondGroup"`
 key inside an individual bond is not the mechanism.
 
-### 7.4 Rate types
+### 7.4 Bond rate types
 
 | Rate type | Syntax |
 |-----------|--------|
-| Fixed | `{"Fixed": 0.08}` / `{"fix": 0.08}` |
+| Fixed | `{"fix": 0.08}` / `("fix", 0.08)` (default day count `DC_ACT_365F`) |
 | Fixed + day count | `{"fix": 0.08, "dayCount": "DC_ACT_365"}` |
-| Floater (dict) | `{"Floater": {"index": "SOFR3M", "spread": 0.015, "reset": "MonthEnd"}}` |
-| Floater + cap/floor | `{"Floater": {..., "cap": 0.09, "floor": 0.03}}` |
+| Floater (list form) | `{"floater": [0.05, "SOFR3M", 0.015, "MonthEnd"]}` — `[currentRate, index, spread, resetDatePattern]` |
+| Floater (extended) | `{"rate": 0.05, "index": "SOFR3M", "spread": 0.015, "reset": "MonthEnd", "dayCount": ..., "cap": 0.09, "floor": 0.03}` |
+| Floater conv. | `("floater", (0.05, "SOFR3M", 0.015, "MonthEnd"), "DC_ACT_365F")` |
 | Step-up (once) | `{"stepUp": ("once", "2024-01-01", 0.01)}` |
 | Step-up (ladder) | `{"stepUp": ("ladder", "2024-01-01", 0.01, "QuarterEnd")}` |
 | Cap wrapper | `("cap", 0.06, innerRateType)` |
 | Floor wrapper | `("floor", 0.005, innerRateType)` |
-| Inverse floater | `{"InverseFloater": {"index": "SOFR3M", "cap": 0.12, "floor": 0.0}}` |
-| Ref balance | `("refBalance", formula, rateType)` |
-| Ref pool rate | `("ref", 0.05, ("poolWaRate",), 1.0, "MonthEnd")` |
+| Ref balance | `("refBalance", ("poolBalance",), {"fix": 0.05})` — rate tied to a formula-derived balance |
+| Ref pool rate | `("ref", 0.05, ("poolWaRate",), 1.0, "MonthEnd")` — `[rate, stats, factor, reset]` |
 | Interest over interest | `("withIntOverInt", ("inflate", 0.2), {"fix": 0.0569})` |
+
+`None` as a bond rate becomes a `Fix [0, DC_ACT_365F]` (zero-coupon) bond —
+but prefer an explicit `{"fix": 0}` (see H-warning about refinance events with
+implicit rates). Asset `originRate` accepts the same `("fix", rate)` /
+`["floater", rate, {...}]` tuple forms via the asset rate parser.
 
 ---
 
@@ -374,17 +400,32 @@ key inside an individual bond is not the mechanism.
 "accounts": {
     "acc01":     {"balance": 0},
     "reserve":   {"balance": 50000, "type": ("fix", 50000)},
-    "targetRes": {"balance": 5000, "type": ("target", ("*", ("poolBalance",), 0.0035))},
+    "targetRes": {"balance": 5000, "type": ("target", ("poolBalance",), 0.0035)},
     "condRes":   {"balance": 100, "type": ("when", [("isPaidOff","A"), True],
-                                          ("fix", 0), ("target", ("*",("poolBalance",),0.0035)))},
-    "intAcc":    {"balance": 1000, "rate": ("fixed", 0.02)},
-    "floatAcc":  {"balance": 1000, "rate": ("floater", "SOFR3M", 0.005)}
+                                           ("fix", 0), ("target", ("poolBalance",), 0.0035))},
+    "intAcc":    {"balance": 1000, "interest": {"period": "MonthEnd", "rate": 0.02,
+                                                "lastSettleDate": "2021-06-15"}},
+    "floatAcc":  {"balance": 1000, "interest": {"period": "MonthEnd", "reset": "MonthEnd",
+                                                "index": "SOFR1M", "spread": 0.001,
+                                                "lastSettleDate": "2021-06-15", "rate": 0.02}}
 }
 ```
 
-Reserve targets: `("fix", amount)`, `("target", formula)`,
-`("when", cond, ifTrue, ifFalse)`. Without `type`, an account is a plain
-passthrough.
+Account const `rate` is not a thing — interest-bearing uses the `"interest"`
+dict: bank form `{"period", "rate", "lastSettleDate"}`, investment form
+`{"period", "reset", "index", "spread", "lastSettleDate", "rate"}`.
+
+Reserve targets (`"type"`):
+
+| Target | Syntax |
+|--------|--------|
+| Fixed amount | `("fix", amt)` / `{"fixReserve": amt}` |
+| Percent of formula | `("target", formula, rate)` / `{"targetReserve": [formula, rate]}` |
+| Percent of sum | `("target", ("sum", f1, f2), rate)` |
+| Higher/lower of | `("max", t1, t2)` / `("min", t1, t2)` |
+| Conditional | `("when", condition, ifTrue, ifFalse)` |
+
+Without `type`, an account is a plain passthrough.
 
 ---
 
@@ -444,13 +485,19 @@ The waterfall is a dict keyed by deal status. Standard keys: `"Amortizing"`,
 
 ### 9.5 Assets
 
+Order for buy actions: `[liqMethod, sourceAccount, limit?, poolId?]`.
+
 ```python
-["sellAsset", ["Current|Defaulted", 0.9, 0.2], "acc"]
+["sellAsset", ["Current|Defaulted", 0.9, 0.2], "acc"]            # + optional [poolIds...]
 ["sellAsset", ["PvRate", 0.05], "acc"]
-["buyAsset", ["Current|Defaulted", 1.0, 0], "acc"]
+["buyAsset", ["Current|Defaulted", 1.0, 0], "acc"]               # + optional limit / single pool id
 ["buyAsset", ["PvRate", 0.05], "acc", None]
-["buyAsset2", ["Current|Defaulted", 1.0, 0], "acc", None, "revPool", "dealPool"]
+["buyAsset2", ["Current|Defaulted", 1.0, 0], "acc", None, "fromPool", "toPool"]
 ```
+
+Pool pricing methods (`liqMethod`): `["Current|Defaulted", curFactor,
+defaultFactor]`, `["PvRate", rate]` (`["PvRate", formula]` also maps a
+formula), `["PVCurve", curve]`, `["PV|Defaulted", pv, defaultFactor]`.
 
 ### 9.6 Liquidity
 
@@ -475,12 +522,13 @@ The waterfall is a dict keyed by deal status. Standard keys: `"Amortizing"`,
 ### 9.8 Control flow & inspection
 
 ```python
-["If", condition, action]                # actions are variadic
+["If", condition, action]                # actions are variadic ("if"/"条件执行" too)
 ["IfElse", condition, [true_actions], [false_actions]]
 ["changeStatus", "Accelerated"]
 ["changeStatusIf", condition, "Defaulted"]
 ["inspect", "label", formula1, formula2]
-["bookBy", bookType]
+["runTriggers", "trigger1", "trigger2"]  # force-evaluate trigger(s) in-waterfall
+["bookBy", ["PDL", "Debit", ("cumPoolNetLoss",), [["L1", ("poolBalance",)]]]]
 # with ledger booking:
 ["transfer", "src", "tgt", limit, "book", "Debit", "ledgerName"]
 ```
@@ -488,9 +536,9 @@ The waterfall is a dict keyed by deal status. Standard keys: `"Amortizing"`,
 ### 9.9 Group actions
 
 `source` is the paying account; `target` is the group name; `order` is one of
-`"byName"`, `"byMaturity"`, `"byCurRate"`, `"byProrata"` (or
-`("byName", "A1", "A2")` for a custom order). Groups must be defined as nested
-bond maps (§7.3).
+`"byName"`, `"byMaturity"`, `"byCurRate"`, `"byProrata"`, `"byStartDate"`,
+`("byName", "A1", "A2")` (custom order), or `("reverse", order)`. Groups must
+be defined as nested bond maps (§7.3).
 
 ```python
 ["calcIntByGroup", ["Senior"]]
@@ -546,7 +594,9 @@ plus `NewDefaults`, `NewDelinquencies`, `NewLosses`, `CurBalance`,
 ```
 
 Trigger points: `BeforeCollect`, `AfterCollect`, `BeforeDistribution`,
-`AfterDistribution`, `InDistribution`, `EndOfPoolCollection`.
+`AfterDistribution`, `InDistribution`. (`"endOfCollection"` exists only as a
+**waterfall** key, not a trigger point.) A trigger box may also carry a
+`"name"` label.
 
 Effects:
 
@@ -556,7 +606,7 @@ Effects:
 | Run actions | `("actions", action1, action2)` |
 | Accrue fees | `["accrueFees", "fee1"]` |
 | Set reserve target | `["newReserveBalance", "acc1", {"fixReserve": 1000}]` |
-| Add trigger | `["newTrigger", {...}]` |
+| Add trigger | `["newTrigger", {...}]` — **engine caveat: dynamically added triggers are not implemented in the current Hastructure engine** |
 | Multiple | `["Effects", effect1, effect2]` |
 | Change bond rate | `("changeBondRate", bondName, rateType, newRate)` |
 
@@ -578,8 +628,9 @@ Structure: `("Pool", (assetType, default, prepay, recovery, extra), delinq, extr
 | CDR vector | `{"CDR": [0.01, 0.02, 0.03]}` |
 | CDR padding | `{"CDRPadding": [0.01, 0.02, 0.04]}` |
 | By amount | `{"ByAmount": (2000, [0.25, 0.25, 0.50])}` |
-| Default at end | `{"DefaultAtEndByRate": (0.05, 0.10)}` |
-| By term | `{"ByTerm": [[vec1], [vec2]]}` |
+| Default at end | `"DefaultAtEnd"` (bare string) or `{"DefaultAtEndByRate": (rate, pct)}` |
+| By term | `{"byTerm": [[vec1], [vec2]]}` (lowercase) |
+| Stress by curve | `{"StressByCurve": [stressCurve, baseDefaultAssump]}` |
 
 ### 12.2 Prepayment / recovery / extra
 
@@ -588,6 +639,7 @@ Structure: `("Pool", (assetType, default, prepay, recovery, extra), delinq, extr
 | Constant CPR | `{"CPR": 0.01}` |
 | CPR vector / padding | `{"CPR": [...]}` / `{"CPRPadding": [...]}` |
 | PSA multiple | `{"PSA": 1.5}` |
+| By term | `{"byTerm": [[vec1], [vec2]]}` |
 | Recovery | `{"Rate": 0.7, "Lag": 18}` or `{"Rate": 0.45, "Timing": [0.3,0.3,0.4]}` |
 | Stress by curve | `{"StressByCurve": [curve, baseAssump]}` |
 
@@ -615,10 +667,10 @@ A list of tuples controlling the simulation.
 
 | Assumption | Syntax |
 |------------|--------|
-| Stop at date | `("stop", "2030-01-01")` |
-| Clean-up call | `("call", ("CleanUp", ("poolBalance", 200)))` |
+| Stop at date | `("stop", "2030-01-01", ...predicates)` |
+| Legacy call | `("call", option)` where `option` is one of `("poolBalance", amt)`, `("bondBalance", amt)`, `("poolFactor", pct)`, `("bondFactor", pct)`, `("afterDate", date)`, `("if", predicate)`, `("any", o1, o2)`, `("and", o1, o2)` — there is **no `("CleanUp", ...)` legacy option** in 0.52.x |
 | Conditional call | `("call", ("if", condition))` |
-| Modern call | `("callWhen", options...)` |
+| Modern call | `("callWhen", ("onDates", datePattern, predicates...))` or `("callWhen", ("if", predicates...))` |
 | Flat rate | `("interest", ("SOFR3M", 0.05))` |
 | Rate curve | `("interest", ("SOFR3M", [["2021-01-01", 0.05], ["2022-01-01", 0.06]]))` |
 | Revolving | `("revolving", ["constant", asset], poolAssumpForNew)` |
@@ -628,12 +680,12 @@ A list of tuples controlling the simulation.
 | Pricing (IRR hold) | `("pricing", {"IRR": {"B": ("holding", [("2021-04-01", -500)], 500)}})` |
 | Pricing (IRR sell) | `("pricing", {"IRR": {"A1": ("holding", [("2021-04-01", -500)], 500, "2021-08-19", ("byFactor", 1.0))}})` |
 | Pricing (IRR buy) | `("pricing", {"IRR": {"A1": ("buy", "2021-08-01", ("byFactor", 0.99), ("byCash", 200))}})` |
-| Inspect | `("inspect", [datePattern, formula, ...])` |
+| Inspect | `("inspect", [("MonthEnd", ("poolBalance",)), ("QuarterEnd", [("bondFactor","A"), ("poolBalance",)])])` — list of `(datePattern, formula | list-of-formulas)` |
 | Report | `("report", {"dates": "MonthEnd"})` |
 | Fire trigger | `("fireTrigger", [("2021-10-01", "AfterCollect", "name")])` |
-| Refinance | `("refinance", ("byRate", date, account, bond, rateType))` |
-| Issue bond | `("issueBond", date, group, account, bondDetail)` |
-| Estimate expense | `("estimateExpense", ("tsFee", [["2021-09-01", 10]]))` |
+| Refinance | `("refinance", ("byRate", date, account, bondName, rateType))` — the `rateType` must be explicit, e.g. `{"fix": 0.06}`; an implicit `None` produces a zero `Fix[0,...]` rate the engine rejects as a bad refi plan |
+| Issue bond | `("issueBond", ("bond", date, predicate, bondName, account, balance))` or `("issueBond", (date, predicate, bondName, account, bondDict))` or 4-arg `("issueBond", (date, bondName, account, bondDict))` |
+| Estimate expense | `("estimateExpense", ("myFeeName", [["2021-09-01", 10]]))` — `(feeLabel, balance-curve)` pairs |
 | Make whole | `("makeWhole", date, precision, [[factor, spread], ...])` |
 
 The pricing curve's first date must be **on or after** the pricing date.
@@ -729,7 +781,13 @@ r['result']['report']['cash']     # if ("report", ...) requested
 r['result']['report']['balanceSheet']
 r['pricing']['summary']           # IRR / WAL / spread per bond
 r['pricing']['breakdown']['A1']   # pricing detail
-r['ledgers']
+r['ledgers']                      # ledger dicts when defined
+r['liqProvider'] / r['rateSwap'] / r['rateCap']   # component statements
+r['triggers']                     # per-point per-trigger statement frames
+r['agg_accounts']                 # aggregated account view
+r['_deal']                        # deal echo (name/date info)
+# pass rtn=["AssetLevelFlow"] to api.run for per-asset projections under
+# r['pool']['AssetLevelFlow']
 ```
 
 For `runByScenarios` the return value is a dict keyed by scenario name; each
@@ -747,8 +805,99 @@ value has the same structure as above.
 `USCMT1Y`, `PRIME`, `COFI`, `SOFR1M/3M/6M/1Y`, `EURIBOR1M/3M/6M/12M`, `IRPH`,
 `SONIA`.
 
-**Periods:** `Daily`, `Weekly`, `Monthly`, `Quarterly`, `SemiAnnually`,
-`Annually`.
+**Periods:** the asset/frequency parser accepts `Weekly`, `BiWeekly`,
+`Monthly`, `Quarterly`, `SemiAnnually`, `Annually` (plus lowercase forms) —
+there is no `Daily` asset period; `"Daily"` exists only for date patterns.
 
-**Statuses:** `PreClosing`, `Warehousing`, `RampUp`, `Revolving`, `Amortizing`,
-`Accelerated`, `Defaulted`, `Called`, `Ended`.
+**Statuses:** `PreClosing`, `Warehousing`, `Revolving`, `Amortizing`,
+`Accelerated`, `Defaulted`, `Called`, `Ended`. Note the wrapper's status DSL
+(`"status"` deal key / `changeStatus`) accepts `PreClosing` (optionally as
+`("PreClosing", nextState)`), `Warehousing`, `Revolving`, `Amortizing`,
+`Accelerated`, `Defaulted`, `Ended` — **`Called` has no DSL spelling in
+0.52.x** and a `"RampUp"` spell is flat-out rejected by `mkStatus`.
+
+---
+
+## 18. Deal Library
+
+`absbox` can also talk to a separate deal-library service (`absbox/library.py`):
+
+```python
+from absbox import LIBRARY, LibraryPath
+
+lib = LIBRARY("https://absbox.com.cn/api")   # == str(LibraryPath.CN)
+lib = LIBRARY("https://my-library-host/api")
+lib.login("user", "password")                 # or lib.safeLogin("user")
+lib.libraryInfo                               # ack info from connect
+df = lib.query({"q": ...})                    # list deals -> DataFrame
+dealRaw = lib.get(deal_id)                    # fetch a stored deal
+info, result = lib.run(deal_id, poolAssump=..., runAssump=..., read=True)
+# run() kwargs: runType ("S" default), poolAssump, runAssump, engine, tweak, stop
+```
+
+- Endpoints (internal): `ack`, `token`, `query`, `run`, `add`, `get`
+  (`LibraryEndpoints`).
+- `login` stores a bearer token; all query/get/run calls require it.
+- `get`/`run` use **pickle** payloads — only talk to library servers you trust.
+- `run` returns `(runInfo, Generic.read(result))` on `read=True` — same result
+  structure as §16.
+
+---
+
+## 19. Advanced deal keys
+
+Exact shapes for the less-common deal-map keys (all verified in
+`absbox/local/generic.py` 0.52.9):
+
+```python
+deal = {                                    # (key list: see SKILL.md)
+    "name": "MyDeal",
+    "dates": dict,                 # optional "cust": {label: datePattern}
+    "pool": dict,                  # extras below
+    "accounts": {...}, "bonds": {...}, "fees": {...},
+    "waterfall": {...}, "collect": [...], "status": ...,
+    "liqFacility": {               # liquidity provider, key "start" REQUIRED
+        "L1": {"type": {"total": 100000},             # | {"reset": dp, "quota": amt}
+               "rateType": {"fix": 0.06},             # | {"formula": ds, "pct": 0.9}
+               "feeType": {"fix": 0.002},             # | "unlimit"
+               "rate": None, "fee": None,
+               "start": "2021-06-15", "end": None,
+               "credit": None,                        # None = unlimited; number = cap
+               "dueInt": 0, "duePremium": 0, "stmt": []}},
+    "rateSwap": {
+        "swap1": {"updateDates": "MonthEnd",
+                  "pair": (0.05, ("SOFR1M", 0.01)),   # (pay, receive): float=fixed, (idx,spread)=float
+                  "base": {"fix": 100000},            # | {"formula": ds} | {"schedule": [[d, bal], ...]}
+                  "start": "2021-06-15", "balance": 100000,
+                  "settleDates": [("MonthEnd", "DC_ACT_365F")],  # optional (dp, dayCount) rows
+                  "payRate": 0.05, "receiveRate": 0.062, "dayCount": "DC_ACT_365F"}},
+    "rateCap": {
+        "cap1": {"index": "SOFR1M",
+                 "strike": [["2021-07-01", 0.04]],    # IRateCurve rows
+                 "base": {"formula": ("poolBalance",)}, # | {"fix": bal} | {"schedule": rows}
+                 "start": "2021-06-15", "end": "2027-01-01",
+                 "settleDates": "MonthEnd", "rate": 0.02,
+                 "lastSettleDate": None, "netcash": 0, "stmt": None}},
+    "triggers": {...},               # §11
+    "ledgers": {"L01": {"balance": 0}},
+    "stats": {"BondPaidPeriod": 0, "PoolCollectedPeriod": 2},
+    "custom": {"myData": {"const": 2.0}}   # | {"curve": rows} | {"ds": formula}
+}
+```
+
+Notes:
+
+- `liqFacility` also accepts the aliases `liqProvider`, `liquidity`,
+  `insurance`, `cashAdvance`, `担保`; read back as `r['liqProvider']`.
+- `stats` in 0.52.9 only surfaces integer stats — `BondPaidPeriod` and
+  `PoolCollectedPeriod` (balance/rate/bool stat buckets are wired but empty).
+- Pool dict extras: `"extendBy"` (datePattern to extend projections) and
+  `"issuanceStat"` (`{"IssuanceBalance": N, "HistoryDefaults": N}`, aliases
+  `"发行规模"/"资产池规模"/"CumulativeDefaults"/"累计违约余额"`). Multi-pool
+  deals: `{"PoolA": {assets...}, "PoolB": {...}}`; re-securitization:
+  `{"deals": {...}}`.
+- The `"cust"` key on `dates` maps a label to a datePattern used as a custom
+  execution date, e.g. `"cust": {"myDate": ["CustomDate", "2021-10-20"]}`.
+- Read-back keys in results: `r['liqProvider']`, `r['rateSwap']`, `r['rateCap']`,
+  `r['ledgers']`, `r['triggers']`, `r['accounts']` (plus the aggregated
+  `r['agg_accounts']`), and `r['_deal']` (the deal name).
