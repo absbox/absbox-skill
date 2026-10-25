@@ -1,5 +1,9 @@
 # absbox Skill Changelog
 
+## v4.0.8 — 2026-10-26
+- 修正：ProjectedByFactor 说明改为“wrapper 将 None 归一化为 []，引擎要求列表”
+- 修正：pool sources 使用 wrapper 接受的 `Balance`/`BegBalance`（映射引擎 CurBalance/CurBegBalance）
+
 ## v4.0.7 — 2026-10-26
 - 流程：明确变更优先级（严格，左高右低）：
   `Hastructure` → `AbsBox` → `AbsBox/docs` → `absbox-skill`

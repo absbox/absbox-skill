@@ -301,7 +301,8 @@ Fee types: `("Fixed", amount)`, `("FixedRate", rate)`,
  [["2024-01-01", 10000], ["2024-06-01", 8000]], "MonthEnd",
  (0.02, 0.05),                       # fixed: (share, fix rate)
  [(0.98, 0.05, 0.0, "LIBOR1M")]]     # float: (share, current rate, spread, index)
-# shares must sum to 1.0; float portions are 4-tuples; [] is valid, null is not
+# shares must sum to 1.0; float portions are 4-tuples
+# (the wrapper turns None into []; the engine requires a list, not null)
 ```
 
 ---
@@ -589,8 +590,8 @@ bond maps (§7.3).
 
 Pool sources: `CollectedInterest`, `CollectedPrincipal`, `CollectedPrepayment`,
 `CollectedRecoveries`, `CollectedRental`, `CollectedFeePaid`, `CollectedCash`,
-plus `NewDefaults`, `NewDelinquencies`, `NewLosses`, `CurBalance`,
-`CurBegBalance`.
+plus `NewDefaults`, `NewDelinquencies`, `NewLosses`, `Balance` (engine
+`CurBalance`) and `BegBalance` (engine `CurBegBalance`).
 
 ---
 
