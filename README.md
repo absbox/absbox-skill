@@ -75,9 +75,8 @@ api = API(EnginePath.PROD)                              # version check on
 api = API(EnginePath.DEV, lang='english', check=False)  # skip version check
 ```
 
-The connect check compares only the **minor (tenth) version segment** — the
-major and patch segments are ignored. `check=True` (the default) enforces
-this.
+The client and engine must share the same **MAJOR.MINOR** version; the patch may
+differ. `check=True` (the default) enforces this.
 
 ## Minimal deal
 

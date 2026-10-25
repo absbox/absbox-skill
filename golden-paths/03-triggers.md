@@ -62,8 +62,7 @@ state when the cumulative default rate breaches 3%.
 ## Trigger points
 
 `BeforeCollect`, `AfterCollect`, `BeforeDistribution`, `AfterDistribution`,
-`InDistribution`. (`"endOfCollection"` is a waterfall key, not a trigger
-point.) A trigger box may also carry a `"name"` label.
+`InDistribution`, `EndOfPoolCollection`.
 
 ## Effects
 
