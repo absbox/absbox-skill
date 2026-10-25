@@ -7,6 +7,10 @@ https://absbox-doc.readthedocs.io/en/latest/
 > Conventions: formulas are tuples with a trailing comma (`("poolBalance",)`).
 > Waterfall/collect/effect actions are lists. Enums are dict-wrapped
 > (`{"Fixed": 0.05}`). All dates are ISO `YYYY-MM-DD`.
+> Advanced: engine-shaped tagged objects (`{"tag": ..., "contents": ...}`) are
+> accepted and passed through unchanged for formulas, conditions, actions,
+> trigger effects, fee types, reserve types, bond rates/types, date patterns,
+> pricing methods, assumptions, collection rules and custom data.
 
 ---
 
@@ -183,6 +187,7 @@ action on a specific pay date.
 | Union | `["+", dp1, dp2, ...]` / `["AllDatePattern", dp1, dp2, ...]` |
 | Difference | `["-", dp, [dp1, dp2, ...]]` / `["ExcludeDatePattern", dp, [dp1, ...]]` |
 | Offset | `["OffsetDatePattern", dp, N]` |
+| Starts exclusive | `["StartsExclusive", "2021-01-01", dp]` (deprecated) |
 | Starts after | `[">", "2021-01-01", dp]` / `[">=", "2021-01-01", dp]` |
 | Ends before | `["<", "2021-01-01", dp]` / `["<=", "2021-01-01", dp]` |
 
@@ -339,7 +344,8 @@ The 0.52.3 dict sugars are also valid: `{"recurFeeAmt", "recurDates"}`,
 `[{"date": d, "amount": a}, ...]`, and `flowByBondPeriod` / `flowByPoolPeriod`
 accept `[{"index": i, "amount": a}, ...]`.
 
-Optional keys: `"feeStart"`, `"feeDueDate"`, `"feeDue"`, `"feeLastPaidDate"`.
+Optional keys: `"feeStart"`, `"feeDueDate"`, `"feeDue"`, `"feeLastPaidDate"`,
+`"stmt"` (transaction rows, auto-tagged as `ExpTxn`).
 A fee must be paid by a waterfall action (`payFee`, `calcAndPayFee`, ...) to
 affect cashflow.
 
@@ -357,7 +363,8 @@ affect cashflow.
 }
 ```
 
-Optional: `maturityDate`, `lastAccrueDate`, `dueInt`. Multi-rate bond:
+Optional: `maturityDate`, `lastAccrueDate`, `dueInt`, `lastIntPayDate`,
+`lastPrinPayDate`. Multi-rate bond:
 `"rates": [r1, r2]` with `"rateTypes": [rt1, rt2]`.
 
 ### 7.2 Bond types (dict-wrapped)
@@ -590,8 +597,8 @@ bond maps (§7.3).
 
 Pool sources: `CollectedInterest`, `CollectedPrincipal`, `CollectedPrepayment`,
 `CollectedRecoveries`, `CollectedRental`, `CollectedFeePaid`, `CollectedCash`,
-plus `NewDefaults`, `NewDelinquencies`, `NewLosses`, `Balance` (engine
-`CurBalance`) and `BegBalance` (engine `CurBegBalance`).
+plus `NewDefaults`, `NewDelinquencies`, `NewLosses`, `CollectedPrepaymentPenalty`,
+`Balance` (engine `CurBalance`) and `BegBalance` (engine `CurBegBalance`).
 
 ---
 

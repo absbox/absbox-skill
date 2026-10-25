@@ -1,5 +1,10 @@
 # absbox Skill Changelog
 
+## v4.0.9 — 2026-10-26
+- 对齐 AbsBox 新能力：任意引擎形状的 tagged 对象可直接透传（公式/条件/动作/费率/日期模式等）
+- 新增：Bond `lastPrinPayDate`、Fee `stmt`、Flotater 同时 cap+floor、pool source
+  `CollectedPrepaymentPenalty`、DatePattern `StartsExclusive`
+
 ## v4.0.8 — 2026-10-26
 - 修正：ProjectedByFactor 说明改为“wrapper 将 None 归一化为 []，引擎要求列表”
 - 修正：pool sources 使用 wrapper 接受的 `Balance`/`BegBalance`（映射引擎 CurBalance/CurBegBalance）
