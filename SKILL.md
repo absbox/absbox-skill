@@ -8,7 +8,7 @@ description: >-
   projections. Python 3.10+.
 metadata:
   author: absbox
-  version: "4.0.1"
+  version: "4.0.2"
 license: Apache-2.0
 ---
 
@@ -26,6 +26,30 @@ it loaded. Pull detail from the files it points to.
 - `README.md` — human quick start.
 - `doc/CHANGELOG.md` — release history tied to engine versions.
 
+## Repositories & branch alignment
+
+The stack has three repos; keep them on the same page:
+
+| Repo | Role |
+|------|------|
+| `Hastructure` (Haskell) | Core cashflow engine. AbsBox calls its Servant/Aeson REST API (`/runDeal`, `/runPool`, ...). |
+| `AbsBox` (Python) | Wrapper: builds the JSON deal DSL, POSTs it to the engine, reads the JSON back into pandas. Its `docs/source` is the usage documentation (absbox-doc.readthedocs.io). |
+| `absbox-skill` | This skill: agent-facing routing, reference tables, golden paths and evals for AbsBox. |
+
+**Branch rule:** every `Hastructure` branch has a **same-named** branch in
+`AbsBox` and in `absbox-skill` (e.g. `Dec26`). Work on one engine line at a
+time — check out the same branch name in all three repos before modeling,
+auditing or fixing. The current engine line is **`Dec26`**.
+
+**Version rule:** branches track engine *lines*; package versions only need to
+agree on **MAJOR.MINOR** (an AbsBox 0.52.x client can talk to any 0.52.x
+engine; the engine's `check=True` enforces exactly that).
+
+When a new engine branch appears, create/pull the matching wrapper and skill
+branches, then run the routine in `doc/contract-audit.md` and re-audit this
+skill and `AbsBox/docs` against the wrapper. Do not mix engine branches in one
+session.
+
 ## When to use
 
 - Model/project cashflows for ABS, MBS, CLO, SRT, or any securitization.
@@ -38,6 +62,10 @@ Not for: plain bond pricing with no waterfall, equity valuation, or generic
 fixed-income analytics.
 
 ## Step 0 — how to approach
+
+First confirm the engine, wrapper and skill repos are all on the same branch
+(name matches `Hastructure`; currently `Dec26`) — see
+[Repositories & branch alignment](#repositories--branch-alignment). Then:
 
 1. **Pick the asset type(s).** `Mortgage`, `Loan`, `Lease`, `Installment`,
    `FixedAsset`, `Invoice`, `ProjectedCashflow`, `ProjectedByFactor`.
@@ -72,7 +100,8 @@ api = API("https://absbox.org/api/latest", 'english')
 absbox 0.52.x.
 
 **Version rule:** the client and engine must share the same **MAJOR.MINOR**
-version; the patch may differ. `check=True` (the default) enforces this at
+version; the patch may differ. Branch names must match as well: engine `Dec26`
+⇄ `AbsBox` `Dec26` ⇄ `absbox-skill` `Dec26`. `check=True` (the default) enforces this at
 connect and prints `local lib:x.y.z, server:x.y.z`. `check=False` disables the
 check — fine for experiments, not for reproducible work. Inspect at runtime
 with `api.server_info` and `api.version`.

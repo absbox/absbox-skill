@@ -1,5 +1,12 @@
 # absbox Skill Changelog
 
+## v4.0.2 — 2026-10-25
+- 工作流：新增 Repositories & branch alignment — Hastructure（引擎，Servant/Aeson
+  REST）→ AbsBox（Python wrapper + docs）→ absbox-skill（本 skill）
+- 规则：Hastructure 每个分支在 AbsBox / absbox-skill 有同名分支；当前引擎分支
+  `Dec26`，三个仓库需同分支工作；版本仅需 MAJOR.MINOR 一致
+- Step 0 增加“先对齐三仓库分支”的检查
+
 ## v4.0.1 — 2026-10-25
 - 核查：逐条把 REFERENCE/golden paths 的语法交给 `absbox` 构建器实测，并对
   本地 0.52.13 / prod 0.52.14 引擎真跑；修正与 `AbsBox/docs` 及 wrapper 不一致处

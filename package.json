@@ -1,6 +1,6 @@
 {
   "name": "absbox-skill",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "Agent skill for modeling and projecting structured finance deals (ABS, MBS, CLO, SRT) with the absbox Python library and Hastructure engine. Installs SKILL.md, REFERENCE.md, and golden paths into opencode / Claude / agents skill directories.",
   "keywords": [
     "absbox",
