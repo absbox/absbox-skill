@@ -249,8 +249,9 @@ Step-up: `("flatRate", r)`, `("flatAmount", a)`, `("byRates", ...)`,
 ```
 
 `amortize`: `"Straight"` / `"DecliningBalance"`. `capacity`:
-`("Fixed", v)` or `("ByTerm", [[date, v], ...])`. The current dict must carry
-`currentBalance` (not `balance`).
+`("Fixed", v)` or `("ByTerm", [[term, v], ...])` where `term` is an integer
+period index (the last value covers the remaining periods). The current dict
+must carry `currentBalance` (not `balance`).
 
 ### 5.6 Invoice / Receivable
 

@@ -1,5 +1,8 @@
 # absbox Skill Changelog
 
+## v4.0.5 — 2026-10-26
+- 文档：FixedAsset 的 `("ByTerm", …)` 容量键为整数期数（非日期），与引擎 Dec26 对齐
+
 ## v4.0.4 — 2026-10-26
 - 同步 AbsBox B1–B10 修复：`lastFeePaid` 已改为引擎 `LastFeePaid`（移除“待修复”标注）
 
