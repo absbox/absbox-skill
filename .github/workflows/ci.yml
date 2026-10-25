@@ -1,0 +1,28 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax check
+        run: |
+          node --check bin/install.js
+          node --check bin/postinstall.js
+      - name: List destinations
+        run: node bin/install.js --list
+      - name: Install into a temp dir
+        run: |
+          mkdir -p "$RUNNER_TEMP/skills"
+          node bin/install.js --dir "$RUNNER_TEMP/skills"
+          test -f "$RUNNER_TEMP/skills/absbox/SKILL.md"
+      - name: Pack check
+        run: npm pack --dry-run

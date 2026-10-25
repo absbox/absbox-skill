@@ -1,0 +1,48 @@
+{
+  "name": "absbox-skill",
+  "version": "4.0.1",
+  "description": "Agent skill for modeling and projecting structured finance deals (ABS, MBS, CLO, SRT) with the absbox Python library and Hastructure engine. Installs SKILL.md, REFERENCE.md, and golden paths into opencode / Claude / agents skill directories.",
+  "keywords": [
+    "absbox",
+    "abs",
+    "mbs",
+    "clo",
+    "srt",
+    "securitization",
+    "structured-finance",
+    "skill",
+    "opencode",
+    "claude",
+    "agent"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/yellowbean/absbox-skill",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yellowbean/absbox-skill.git"
+  },
+  "bin": {
+    "absbox-skill": "bin/install.js"
+  },
+  "scripts": {
+    "postinstall": "node bin/postinstall.js",
+    "prepublishOnly": "node --check bin/install.js && node --check bin/postinstall.js",
+    "test": "node bin/install.js --list"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "bin/",
+    "SKILL.md",
+    "REFERENCE.md",
+    "README.md",
+    "golden-paths/",
+    "evals/",
+    "scripts/",
+    "doc/"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

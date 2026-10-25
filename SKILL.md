@@ -8,7 +8,7 @@ description: >-
   projections. Python 3.10+.
 metadata:
   author: absbox
-  version: "4.1.0"
+  version: "4.0.1"
 license: Apache-2.0
 ---
 
@@ -69,7 +69,7 @@ api = API("https://absbox.org/api/latest", 'english')
 `EnginePath` shortcuts: `DEV`, `PROD`, `LOCAL`, `NY_DEV`, `NY_PROD`,
 `USE_ENV` (reads env var `ABSBOX_SERVER`). `PROD` =
 `https://absbox.org/api/latest`. There is **no** `LDN_DEV`/`LDN_PROD` in
-absbox 0.52.3.
+absbox 0.52.x.
 
 **Version rule:** the client and engine must share the same **MAJOR.MINOR**
 version; the patch may differ. `check=True` (the default) enforces this at
@@ -84,8 +84,8 @@ docker pull yellowbean/hastructure
 docker run -p 8081:8081 yellowbean/hastructure
 ```
 
-Pick the first reachable endpoint yourself. (`PickApiFrom` exists but is
-**broken in absbox 0.52.3** — it passes `API` an internal `{"url": ...}` dict —
+Auto-select the first reachable endpoint yourself. (`PickApiFrom` exists but is
+**broken in absbox 0.52.x** — it passes `API` an internal `{"url": ...}` dict —
 so do not use it until fixed.)
 
 ```python
@@ -159,14 +159,14 @@ deal immediately with no cashflow.
 
 | Key | Required | Description |
 |-----|----------|-------------|
-| `name` | yes | Deal identifier |
+| `name` | no | Deal identifier (defaults to empty) |
 | `dates` | yes | cutoff/closing/firstPay/payFreq/poolFreq/stated |
 | `pool` | yes | `{"assets": [...]}`; multi-pool = `{"PoolA": {...}, "PoolB": {...}}` |
 | `accounts` | yes | Cash accounts, optional reserve targets and rates |
 | `bonds` | yes | Tranches; nested map = bond group |
 | `waterfall` | yes | Actions keyed by deal status |
 | `collect` | yes | Maps pool sources to accounts |
-| `status` | yes | `(initial, next)` e.g. `("PreClosing", "Amortizing")` |
+| `status` | no | `(initial, next)` e.g. `("PreClosing", "Amortizing")`; defaults to `"Amortizing"` |
 | `fees` | no | Service/trustee fees |
 | `triggers` | no | Performance triggers by point |
 | `liqFacility` | no | Liquidity facilities |
@@ -208,8 +208,9 @@ dates = api.runDates("2021-01-01", "MonthEnd", "2022-01-01")
 ```
 
 Result keys: `r['pool']['flow']`, `r['bonds'][name]`, `r['accounts'][name]`,
-`r['fees']`, `r['result']['logs' | 'status' | 'waterfall' | 'inspect' | 'report']`,
-`r['pricing']`. Helpers: `readBondsCf`, `readFeesCf`, `readAccsCf`,
+`r['fees']`, `r['result']['logs' | 'status' | 'waterfall' | 'waterfallInspect' | 'inspect']`,
+`r['pricing']` (present only when a pricing assumption was requested —
+`r['result']['report']` is not emitted by engines 0.52.x). Helpers: `readBondsCf`, `readFeesCf`, `readAccsCf`,
 `readInspect`, `readLedgers`, `unifyTs`, `readFlowsByScenarios`,
 `readMultiFlowsByScenarios`, `readFieldsByScenarios`, `toHtml`, `toExcel`,
 `compResult`. See `REFERENCE.md` §15–16.
@@ -229,8 +230,10 @@ sending it — the cheapest way to validate a deal map offline.
    `(assetType, default, prepay, recovery, extra)`; use `None` for gaps.
 5. **Single-element formulas need a trailing comma** — `("poolBalance",)`, not
    `("poolBalance")`.
-6. **Enums are dict-wrapped** — `{"Sequential": None}`, `{"Equity": None}`,
-   `{"Fixed": 0.05}`; a bare string fails.
+6. **Enums are usually dict-wrapped** — `{"Sequential": None}`,
+   `{"Fixed": 0.05}`. A few are bare strings (`bondType: "IO"`, `"Sequential"`,
+   `"Equity"`), and some wire enums must be strings (pool sources). Follow the
+   tables per field instead of assuming one rule.
 7. **Action names and group order are exact, lowercase-sensitive** —
    `payPrin`, `accrueAndPayInt`; group order is `"byName"`/`"byMaturity"`/
    `"byCurRate"`/`"byProrata"` (not `"ByName"`).
@@ -243,8 +246,9 @@ sending it — the cheapest way to validate a deal map offline.
 11. **Reserve accounts need `type`** — otherwise the account is a plain
     passthrough with no target.
 12. **Group/`writeOff`/`fundWith`/`liqRepay` arg counts** — `writeOff` and
-    `fundWith` need an explicit limit (`None` is fine); use the 4-arg
-    `liqRepay`. See `REFERENCE.md` §9.
+    `fundWith` accept an optional limit (omit it, or pass `None`); use the 4-arg
+    `liqRepay` (`["liqRepay", ["int","bal"], acc, liq]`), adding a 5th limit if
+    needed. See `REFERENCE.md` §9.
 13. **Large responses can truncate behind proxies** — pool projections grow with
     assets × periods; keep test deals small or use a local engine.
 
