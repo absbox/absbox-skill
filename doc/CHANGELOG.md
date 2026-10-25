@@ -1,5 +1,12 @@
 # absbox Skill Changelog
 
+## v4.0.3 — 2026-10-26
+- 文档：`ProjectedByFactor` 的浮动部分按引擎 Dec26 改为 4 元组
+  `(share, current rate, spread, index)`；份额需与固定部分合计 1.0；列表必填（`[]` 可，`null` 不可）
+- 文档：`lastFeePaid` 语义对齐引擎 `LastFeePaid`（计算日当天的已付费用），并标注 wrapper 目前
+  仍映射为累计 `FeePaidAmt`（待 AbsBox 修复）
+- 文档：`PickApiFrom` 在 0.52.x 已可用，恢复为推荐用法（移除“已损坏”旧说明）
+
 ## v4.0.2 — 2026-10-25
 - 工作流：新增 Repositories & branch alignment — Hastructure（引擎，Servant/Aeson
   REST）→ AbsBox（Python wrapper + docs）→ absbox-skill（本 skill）

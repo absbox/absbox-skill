@@ -8,7 +8,7 @@ description: >-
   projections. Python 3.10+.
 metadata:
   author: absbox
-  version: "4.0.2"
+  version: "4.0.3"
 license: Apache-2.0
 ---
 
@@ -113,20 +113,14 @@ docker pull yellowbean/hastructure
 docker run -p 8081:8081 yellowbean/hastructure
 ```
 
-Auto-select the first reachable endpoint yourself. (`PickApiFrom` exists but is
-**broken in absbox 0.52.x** — it passes `API` an internal `{"url": ...}` dict —
-so do not use it until fixed.)
+Auto-select the first reachable endpoint whose engine matches the client's
+MAJOR.MINOR version:
 
 ```python
-from absbox import API, EnginePath
+from absbox import PickApiFrom, EnginePath
 
-api = None
-for ep in [EnginePath.PROD, EnginePath.DEV, EnginePath.LOCAL]:
-    try:
-        api = API(ep, lang='english')
-        break
-    except Exception:
-        continue
+api = PickApiFrom([EnginePath.PROD, EnginePath.DEV, EnginePath.LOCAL],
+                  lang='english')
 ```
 
 ## Minimal complete deal (verified against the DEV engine)

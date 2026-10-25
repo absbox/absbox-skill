@@ -84,7 +84,7 @@ Read `api.server_info` / `api.version` for the connected versions.
 | `("accountBalance",)` / `("accountBalance","A","B")` | Sum of accounts / named |
 | `("accountTxnAmt",None,"A")` / `("accountTxnAmt","<tag>","A")` | Account transactions |
 | `("reserveGap","A")` / `("reserveExcess","A")` | Reserve shortfall / excess |
-| `("feeDue","F1")` / `("lastFeePaid","F1")` | Fee due / last paid |
+| `("feeDue","F1")` / `("lastFeePaid","F1")` | Fee due / fees paid on the current calculation date (engine `LastFeePaid`; the wrapper currently emits cumulative `FeePaidAmt` — mapping fix pending) |
 | `("feeTxnAmt",None,"F1")` | Fee transaction amount |
 | `("liqCredit","L1")` / `("liqBalance","L1")` | Credit line / drawn balance |
 | `("ledgerBalance","L1")` / `("ledgerTxnAmount","L1")` | Ledger balance / txns |
@@ -274,7 +274,9 @@ Fee types: `("Fixed", amount)`, `("FixedRate", rate)`,
 
 ["ProjectedByFactor",
  [["2024-01-01", 10000], ["2024-06-01", 8000]], "MonthEnd",
- (0.02, 0.05), None]   # (default rate, prepay rate), extra
+ (0.02, 0.05),                       # fixed: (share, fix rate)
+ [(0.98, 0.05, 0.0, "LIBOR1M")]]     # float: (share, current rate, spread, index)
+# shares must sum to 1.0; float portions are 4-tuples; [] is valid, null is not
 ```
 
 ---
