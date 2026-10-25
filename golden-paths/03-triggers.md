@@ -62,7 +62,7 @@ state when the cumulative default rate breaches 3%.
 ## Trigger points
 
 `BeforeCollect`, `AfterCollect`, `BeforeDistribution`, `AfterDistribution`,
-`InDistribution`, `EndOfPoolCollection`.
+`InDistribution`.
 
 ## Effects
 

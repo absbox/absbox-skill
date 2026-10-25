@@ -1,5 +1,26 @@
 # absbox Skill Changelog
 
+## v4.0.1 — 2026-10-25
+- 核查：逐条把 REFERENCE/golden paths 的语法交给 `absbox` 构建器实测，并对
+  本地 0.52.13 / prod 0.52.14 引擎真跑；修正与 `AbsBox/docs` 及 wrapper 不一致处
+- 修复：`EnginePath` 移除不存在的 `LDN_DEV`/`LDN_PROD`；SKILL 中 golden path
+  文件名 `08-fees-reserves-ledgers.md` → `08-fees-reserves.md`
+- 修复：`ProjectedCashflow` 参数（需 beginBalance/beginDate）、FixedAsset
+  `currentBalance` 与 `("ByTerm", …)`、Loan `("Schedule", …)`、`{"IO": None}` → `"IO"`
+- 修复：Floater 利率写法（移除 `{"Floater": …}`/`InverseFloater`）；step-up 说明
+  为 bond 顶层字段；账户计息改用 `"interest"` dict（`"rate"` 被忽略）
+- 修复：`payIntOverInt` 需要第 4 个 limit 参数；`writeOff`/`fundWith` 的 limit 可省略
+- 修复：`["period","in",…]` 用可变参数；`("always", True/False)` 取代
+  `alwaysTrue/False`；DatePattern 移除 `Daily`、修正 `["-", dp, [dp...]]`
+- 修复：百分比归集写法 `["CollectedInterest", [0.8,"acc01"], …]`（pct 在前、勿再嵌套）
+- 修复：触发器位置移除 `EndOfPoolCollection`；`byTerm` 大小写；`issueBond` 为
+  “每只债券一个元组”
+- 修复：报告（`("report", …)` / `r['result']['report']`）在 0.52.x 引擎不产出，
+  改为显式说明；`r['pricing']` 仅在请求定价假设时存在
+- 修复：`RampUp` 不是 DealStatus；golden 02/05 的“已验证数值”按 0.52.13 重测更新；
+  golden 02 的 `ByIndex` 结构；golden 07 移除 `Prepaid` 状态映射
+- 措辞：枚举“必须 dict 包裹”改为按字段而定；`name`/`status` 非必需
+
 ## v4.0.0 — 2026-09-26
 - 验证：在 `absbox` 0.52.3 / Hastructure 0.52.x 上实际运行所有 golden path
   （DEV: 0.52.4，PROD: 0.52.5）
@@ -16,7 +37,7 @@
 - 修复：`runPool` 需要 pool 内 `cutoffDate`，返回 `{poolName: {"flow": ...}}`
 - 修复：`from absbox.local.analytics import irr` 不存在；IRR 通过
   `("pricing", {"IRR": ...})` 与 `r['pricing']['summary']`
-- 新增：EnginePath 完整列表（LDN/NY/USE_ENV）、`runFirstLoss`、`runDates`、
+- 新增：EnginePath 扩展列表（NY/USE_ENV）、`runFirstLoss`、`runDates`、
   `runPoolByScenarios`、MultiResult 读取器
 - 新增：8 个已验证 golden path + 索引
 - 新增：5 个行为 eval

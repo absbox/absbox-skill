@@ -19,8 +19,6 @@ https://absbox-doc.readthedocs.io/en/latest/
 | `DEV` | `https://absbox.org/api/dev` |
 | `PROD` | `https://absbox.org/api/latest` |
 | `LOCAL` | `http://localhost:8081` |
-| `LDN_DEV` | `https://ldn.spv.run/api/dev` |
-| `LDN_PROD` | `https://ldn.spv.run/api/latest` |
 | `NY_DEV` | `https://spv.run/api/dev` |
 | `NY_PROD` | `https://spv.run/api/latest` |
 | `USE_ENV` | resolves env var `ABSBOX_SERVER` |
@@ -56,8 +54,8 @@ Read `api.server_info` / `api.version` for the connected versions.
 | `("cumPoolDefaultedBalance",)` | float | Cumulative defaulted balance |
 | `("cumPoolNetLoss",)` | float | Cumulative net loss |
 | `("cumPoolRecoveries",)` | float | Cumulative recoveries |
-| `("cumPoolCollection",field1,...)` | float | Cumulative collection on fields |
-| `("cumPoolCollectionTill",N,field)` | float | Cumulative collection until period N |
+| `("cumPoolCollection",field1,...)` | float | Cumulative collection on fields (`None` may precede the fields) |
+| `("cumPoolCollectionTill",None,N,field)` | float | Cumulative collection until period N |
 | `("curPoolCollection",field1,...)` | float | Current-period collection sum |
 | `("schedulePoolValuation",pricing,pool)` | float | Schedule cashflow valuation |
 
@@ -107,7 +105,7 @@ Read `api.server_info` / `api.version` for the connected versions.
 | `("isMostSenior","A",["B","C"])` | bool |
 | `("status","Amortizing")` | bool |
 | `("allTest",True,bool1,...)` / `("anyTest",True,bool1,...)` | bool |
-| `("alwaysTrue",)` / `("alwaysFalse",)` | bool |
+| `("always", True)` / `("always", False)` | bool |
 
 ### 2.5 Arithmetic / combination
 
@@ -135,13 +133,12 @@ Read `api.server_info` / `api.version` for the connected versions.
 | Numeric compare | `[formula, ">" | "<" | ">=" | "<=" | "=", value]` |
 | Bool check | `[formula, True]` / `[formula, False]` |
 | Date compare | `["<", "2025-01-01"]` / `[">", "2025-01-01"]` / `["=", "2022-08-20"]` |
-| Period | `["period", "in", [1,2,3]]` |
+| Period | `["period", "in", 1, 2, 3]` |
 | Status | `["status", "Amortizing"]` |
 | All (AND) | `["all", cond1, cond2]` |
 | Any (OR) | `["any", cond1, cond2]` |
 | Not | `["not", cond]` |
 | Against curve | `[formula, ">", [["2021-01-01",0.03],["2022-01-01",0.05]]]` |
-| Always true/false | `("alwaysTrue",)` / `("alwaysFalse",)` |
 
 Date equality `["=", "YYYY-MM-DD"]` is commonly used inside `If` to fire an
 action on a specific pay date.
@@ -155,7 +152,6 @@ action on a specific pay date.
 | Month end / first | `"MonthEnd"` / `"MonthFirst"` |
 | Quarter end / first | `"QuarterEnd"` / `"QuarterFirst"` |
 | Year end / first | `"YearEnd"` / `"YearFirst"` |
-| Daily | `"Daily"` |
 | Day of month | `["DayOfMonth", D]` |
 | Month/day of year | `["MonthDayOfYear", M, D]` |
 | Weekday | `["Weekday", N]` (0=Mon) |
@@ -163,7 +159,7 @@ action on a specific pay date.
 | Every N months | `["EveryNMonth", "2021-01-01", N]` |
 | After date | `["After", "2021-01-01", dp]` |
 | Union | `["+", dp1, dp2]` |
-| Difference | `["-", dp1, dp2]` |
+| Difference | `["-", dp, [dp1, dp2, ...]]` |
 | Offset | `["OffsetDatePattern", dp, N]` |
 
 ---
@@ -216,7 +212,8 @@ penalty types (`{"byTerm": [...]}`, `{"fixPct": [...]}`, `{"sliding": [...]}`,
   "status": "Current"}]
 ```
 
-Types: `"i_p"` (interest-only then principal), `"Schedule"` (custom schedule).
+Types: `"i_p"` (interest-only then principal), `("Schedule", [["2024-01-01", 100]])`
+(custom schedule; a bare `"Schedule"` string is not accepted).
 
 ### 5.3 Lease
 
@@ -247,11 +244,12 @@ Step-up: `("flatRate", r)`, `("flatAmount", a)`, `("byRates", ...)`,
  {"start": "2023-11-01", "originBalance": 1000000, "originTerm": 120,
   "residual": 100000, "period": "Monthly", "amortize": "Straight",
   "capacity": ("Fixed", 24*25*120*30)},
- {"remainTerm": 120, "balance": 30000}]
+ {"remainTerm": 120, "currentBalance": 30000}]
 ```
 
 `amortize`: `"Straight"` / `"DecliningBalance"`. `capacity`:
-`("Fixed", v)` or `("ByTimeSeries", [[date, v], ...])`.
+`("Fixed", v)` or `("ByTerm", [[date, v], ...])`. The current dict must carry
+`currentBalance` (not `balance`).
 
 ### 5.6 Invoice / Receivable
 
@@ -269,9 +267,9 @@ Fee types: `("Fixed", amount)`, `("FixedRate", rate)`,
 ### 5.7 Projected cashflows
 
 ```python
-["ProjectedCashflow",
+["ProjectedCashflow", 1000, "2024-01-01",
  [["2024-01-01", 100, 50], ["2024-02-01", 100, 45]], "MonthEnd"]
-# each row: [date, principal, interest]
+# [beginBalance, beginDate, rows, datePattern]; each row: [date, principal, interest]
 
 ["ProjectedByFactor",
  [["2024-01-01", 10000], ["2024-06-01", 8000]], "MonthEnd",
@@ -302,8 +300,9 @@ Fee types: `("Fixed", amount)`, `("FixedRate", rate)`,
 | By bond period | `{"flowByBondPeriod": [[index, amount], ...]}` |
 | By pool period | `{"flowByPoolPeriod": [[index, amount], ...]}` |
 
-Optional keys: `"feeStart"`, `"feeEnd"`. A fee must be paid by a waterfall
-action (`payFee`, `calcAndPayFee`, ...) to affect cashflow.
+Optional keys: `"feeStart"`, `"feeDueDate"`, `"feeDue"`, `"feeLastPaidDate"`.
+A fee must be paid by a waterfall action (`payFee`, `calcAndPayFee`, ...) to
+affect cashflow.
 
 ---
 
@@ -330,7 +329,7 @@ Optional: `maturityDate`, `lastAccrueDate`, `dueInt`. Multi-rate bond:
 | PAC | `{"PAC": [["2021-07-20", 800]], "anchorBonds": ["A2"]}` |
 | Lockout | `{"Lockout": "2023-01-01"}` |
 | Equity | `{"Equity": None}` |
-| IO | `{"IO": None}` |
+| IO | `"IO"` (bare string, not dict-wrapped) |
 | Z-bond | `{"Z": None}` |
 | Balance schedule | `{"BalanceByPeriod": [[0, 900], [5, 800], [6, 0]]}` |
 
@@ -355,16 +354,22 @@ key inside an individual bond is not the mechanism.
 |-----------|--------|
 | Fixed | `{"Fixed": 0.08}` / `{"fix": 0.08}` |
 | Fixed + day count | `{"fix": 0.08, "dayCount": "DC_ACT_365"}` |
-| Floater (dict) | `{"Floater": {"index": "SOFR3M", "spread": 0.015, "reset": "MonthEnd"}}` |
-| Floater + cap/floor | `{"Floater": {..., "cap": 0.09, "floor": 0.03}}` |
-| Step-up (once) | `{"stepUp": ("once", "2024-01-01", 0.01)}` |
-| Step-up (ladder) | `{"stepUp": ("ladder", "2024-01-01", 0.01, "QuarterEnd")}` |
+| Floater | `{"floater": [0.05, "SOFR3M", 0.015, "MonthEnd"], "dayCount": "DC_ACT_365"}` |
+| Floater (key form) | `{"index": "SOFR3M", "spread": 0.015, "reset": "MonthEnd", "rate": 0.05}` |
+| Floater + cap/floor | add `"cap": 0.09` / `"floor": 0.03` to the dict form |
 | Cap wrapper | `("cap", 0.06, innerRateType)` |
 | Floor wrapper | `("floor", 0.005, innerRateType)` |
-| Inverse floater | `{"InverseFloater": {"index": "SOFR3M", "cap": 0.12, "floor": 0.0}}` |
 | Ref balance | `("refBalance", formula, rateType)` |
 | Ref pool rate | `("ref", 0.05, ("poolWaRate",), 1.0, "MonthEnd")` |
 | Interest over interest | `("withIntOverInt", ("inflate", 0.2), {"fix": 0.0569})` |
+
+Step-up is a **bond-level field**, not a rate type — put it next to `rateType` in
+the bond map:
+
+```python
+{"rateType": {"fix": 0.08},
+ "stepUp": ("once", "2024-01-01", 0.01)}        # or ("ladder", date, spread, dp)
+```
 
 ---
 
@@ -377,14 +382,20 @@ key inside an individual bond is not the mechanism.
     "targetRes": {"balance": 5000, "type": ("target", ("*", ("poolBalance",), 0.0035))},
     "condRes":   {"balance": 100, "type": ("when", [("isPaidOff","A"), True],
                                           ("fix", 0), ("target", ("*",("poolBalance",),0.0035)))},
-    "intAcc":    {"balance": 1000, "rate": ("fixed", 0.02)},
-    "floatAcc":  {"balance": 1000, "rate": ("floater", "SOFR3M", 0.005)}
+    "intAcc":    {"balance": 1000,
+                  "interest": {"period": "MonthEnd", "rate": 0.02,
+                               "lastSettleDate": "2021-01-01"}},
+    "floatAcc":  {"balance": 1000,
+                  "interest": {"period": "MonthEnd", "reset": "MonthEnd",
+                               "index": "SOFR3M", "spread": 0.005,
+                               "lastSettleDate": "2021-01-01", "rate": 0.02}}
 }
 ```
 
 Reserve targets: `("fix", amount)`, `("target", formula)`,
 `("when", cond, ifTrue, ifFalse)`. Without `type`, an account is a plain
-passthrough.
+passthrough. Account interest goes under `"interest"` (a dict as above); a
+`"rate"` key is ignored.
 
 ---
 
@@ -414,7 +425,7 @@ The waterfall is a dict keyed by deal status. Standard keys: `"Amortizing"`,
 ["accrueAndPayIntBySeq", "acc", ["A1", "A2"]]
 ["payIntResidual", "acc", "B"]
 ["payIntByIndex", "acc", ["A1"], 0]
-["payIntOverInt", "acc", ["A1"]]               # penalty interest
+["payIntOverInt", "acc", ["A1"], None]         # penalty interest (limit map last)
 ```
 
 ### 9.3 Principal
@@ -425,9 +436,9 @@ The waterfall is a dict keyed by deal status. Standard keys: `"Amortizing"`,
 ["payPrinResidual", "acc", ["B"]]
 ["payPrinWithDue", "acc", ["A1"]]              # pay scheduled principal due
 ["calcBondPrin", "acc", ["A1"]]                # accrue due principal only
-["writeOff", "A1", None]                       # limit required (None ok)
+["writeOff", "A1"]                             # limit optional (None = no cap)
 ["writeOff", ["A1","A2"], {"formula": ("constant", 100)}]
-["fundWith", "acc", "A1", None]                # limit required
+["fundWith", "acc", "A1"]                      # limit optional
 ```
 
 ### 9.4 Accounts
@@ -515,8 +526,10 @@ bond maps (§7.3).
 ```python
 "collect": [["CollectedInterest", "acc01"], ["CollectedPrincipal", "acc01"]]
 
-# percentage split
-"collect": [["CollectedInterest", [["acc01", 0.8], ["acc02", 0.2]]]]
+# percentage split: pct first, one pair per extra argument
+"collect": [["CollectedInterest", [0.8, "acc01"], [0.2, "acc02"]]],
+# do NOT wrap the pairs in another list: [["CollectedInterest", [["acc01", 0.8]]]]
+# sends an invalid double-nested shape to the engine
 
 # multi-pool: [[poolName], source, account]
 "collect": [[["PoolA"], "CollectedInterest", "acc01"],
@@ -546,7 +559,7 @@ plus `NewDefaults`, `NewDelinquencies`, `NewLosses`, `CurBalance`,
 ```
 
 Trigger points: `BeforeCollect`, `AfterCollect`, `BeforeDistribution`,
-`AfterDistribution`, `InDistribution`, `EndOfPoolCollection`.
+`AfterDistribution`, `InDistribution`.
 
 Effects:
 
@@ -579,7 +592,7 @@ Structure: `("Pool", (assetType, default, prepay, recovery, extra), delinq, extr
 | CDR padding | `{"CDRPadding": [0.01, 0.02, 0.04]}` |
 | By amount | `{"ByAmount": (2000, [0.25, 0.25, 0.50])}` |
 | Default at end | `{"DefaultAtEndByRate": (0.05, 0.10)}` |
-| By term | `{"ByTerm": [[vec1], [vec2]]}` |
+| By term | `{"byTerm": [[vec1], [vec2]]}` |
 
 ### 12.2 Prepayment / recovery / extra
 
@@ -628,11 +641,11 @@ A list of tuples controlling the simulation.
 | Pricing (IRR hold) | `("pricing", {"IRR": {"B": ("holding", [("2021-04-01", -500)], 500)}})` |
 | Pricing (IRR sell) | `("pricing", {"IRR": {"A1": ("holding", [("2021-04-01", -500)], 500, "2021-08-19", ("byFactor", 1.0))}})` |
 | Pricing (IRR buy) | `("pricing", {"IRR": {"A1": ("buy", "2021-08-01", ("byFactor", 0.99), ("byCash", 200))}})` |
-| Inspect | `("inspect", [datePattern, formula, ...])` |
-| Report | `("report", {"dates": "MonthEnd"})` |
+| Inspect | `("inspect", (datePattern, formula))` — one pair per inspect point; `(datePattern, [formula1, formula2])` for several |
+| Report | `("report", {"dates": "MonthEnd"})` — accepted, but engines 0.52.x do not emit financial reports (see §16) |
 | Fire trigger | `("fireTrigger", [("2021-10-01", "AfterCollect", "name")])` |
 | Refinance | `("refinance", ("byRate", date, account, bond, rateType))` |
-| Issue bond | `("issueBond", date, group, account, bondDetail)` |
+| Issue bond | `("issueBond", (date, group, account, bondDetail))` — one tuple per bond |
 | Estimate expense | `("estimateExpense", ("tsFee", [["2021-09-01", 10]]))` |
 | Make whole | `("makeWhole", date, precision, [[factor, spread], ...])` |
 
@@ -678,7 +691,7 @@ loss.
 
 | Method | Purpose |
 |--------|---------|
-| `api.run(deal, poolAssump, runAssump, read=True, showWarning=True, rtn=[], debug=False)` | Single run |
+| `api.run(deal, poolAssump, runAssump, read=True, showWarning=True, rtn=None, debug=False)` | Single run |
 | `api.runByScenarios(deal, poolAssump, runAssump)` | Multiple pool scenarios |
 | `api.runByDealScenarios(deal, poolAssump, runAssump)` | Multiple run scenarios |
 | `api.runStructs(deals, poolAssump, nonPoolAssump, runAssump)` | Multiple structures |
@@ -725,10 +738,10 @@ r['result']['logs']               # warnings / errors — read first
 r['result']['status']             # status transitions
 r['result']['waterfall']          # waterfall execution log
 r['result']['waterfallInspect']   # inspect-action output
-r['result']['report']['cash']     # if ("report", ...) requested
-r['result']['report']['balanceSheet']
-r['pricing']['summary']           # IRR / WAL / spread per bond
-r['pricing']['breakdown']['A1']   # pricing detail
+# NOTE: engines 0.52.x accept ("report", ...) but do not return
+# FinancialReport logs, so r['result']['report'] is absent in practice.
+r['pricing']['summary']           # IRR / WAL / spread per bond (only when a
+r['pricing']['breakdown']['A1']   # pricing assumption was requested; else None)
 r['ledgers']
 ```
 
@@ -750,5 +763,6 @@ value has the same structure as above.
 **Periods:** `Daily`, `Weekly`, `Monthly`, `Quarterly`, `SemiAnnually`,
 `Annually`.
 
-**Statuses:** `PreClosing`, `Warehousing`, `RampUp`, `Revolving`, `Amortizing`,
-`Accelerated`, `Defaulted`, `Called`, `Ended`.
+**Statuses:** `PreClosing`, `Warehousing`, `Revolving`, `Amortizing`,
+`Accelerated`, `Defaulted`, `Called`, `Ended`. (`RampUp` is not a deal status;
+it is a waterfall *when* key.)

@@ -20,8 +20,9 @@ tape = pd.DataFrame({
     "status":    ["Current", "Current", "Current"],
 })
 
-# absbox statuses are capitalised: Current / Defaulted / Prepaid.
-STATUS = {"current": "Current", "defaulted": "Defaulted", "prepaid": "Prepaid"}
+# absbox statuses are capitalised: Current / Defaulted.
+# (`Prepaid` is not a valid engine status — drop or remap such loans.)
+STATUS = {"current": "Current", "defaulted": "Defaulted"}
 
 assets = [
     ["Mortgage",
@@ -53,7 +54,8 @@ print(flow[["Balance", "Principal", "Interest"]].head())
 ## Mapping rules
 
 - Convert every date column to ISO `YYYY-MM-DD` strings.
-- Map status to `Current` / `Defaulted` / `Prepaid` (capitalised).
+- Map status to `Current` / `Defaulted` (capitalised). `Prepaid` is not a valid
+  status; exclude paid-off loans from the tape or remap them deliberately.
 - Decide amortization `type` from the product: `"Level"`, `"Even"`, `"I_P"`,
   or `("Balloon", N)`.
 - Fixed vs floating: use `["fix", rate]` or
