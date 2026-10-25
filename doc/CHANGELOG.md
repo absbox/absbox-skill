@@ -1,5 +1,10 @@
 # absbox Skill Changelog
 
+## v4.0.7 — 2026-10-26
+- 流程：明确变更优先级（严格，左高右低）：
+  `Hastructure` → `AbsBox` → `AbsBox/docs` → `absbox-skill`
+  左侧为准、不得为迁就右侧而修改；冲突时改右侧（低优先级）一侧
+
 ## v4.0.6 — 2026-10-26
 - 对齐 absbox/docs（Dec26）：REFERENCE 按手册补齐/修正语法
 - 修正：Weekday `0=Sunday`；`("call", {"poolBalance":200})`（非 CleanUp）；

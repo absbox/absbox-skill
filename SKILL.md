@@ -8,7 +8,7 @@ description: >-
   projections. Python 3.10+.
 metadata:
   author: absbox
-  version: "4.0.6"
+  version: "4.0.7"
 license: Apache-2.0
 ---
 
@@ -35,6 +35,13 @@ The stack has three repos; keep them on the same page:
 | `Hastructure` (Haskell) | Core cashflow engine. AbsBox calls its Servant/Aeson REST API (`/runDeal`, `/runPool`, ...). |
 | `AbsBox` (Python) | Wrapper: builds the JSON deal DSL, POSTs it to the engine, reads the JSON back into pandas. Its `docs/source` is the usage documentation (absbox-doc.readthedocs.io). |
 | `absbox-skill` | This skill: agent-facing routing, reference tables, golden paths and evals for AbsBox. |
+
+**Change priority (strict, highest first):** `Hastructure` → `AbsBox` →
+`AbsBox/docs` → `absbox-skill`. The left side is authoritative and must not be
+modified to satisfy the right side. When two layers disagree, fix the
+lower-priority (right-hand) layer; never edit a higher-priority repo to make a
+lower one true. In particular: the wrapper follows the engine, the manual
+follows the wrapper, and this skill follows the manual.
 
 **Branch rule:** every `Hastructure` branch has a **same-named** branch in
 `AbsBox` and in `absbox-skill` (e.g. `Dec26`). Work on one engine line at a
