@@ -1,5 +1,8 @@
 # absbox Skill Changelog
 
+## v4.0.4 — 2026-10-26
+- 同步 AbsBox B1–B10 修复：`lastFeePaid` 已改为引擎 `LastFeePaid`（移除“待修复”标注）
+
 ## v4.0.3 — 2026-10-26
 - 文档：`ProjectedByFactor` 的浮动部分按引擎 Dec26 改为 4 元组
   `(share, current rate, spread, index)`；份额需与固定部分合计 1.0；列表必填（`[]` 可，`null` 不可）

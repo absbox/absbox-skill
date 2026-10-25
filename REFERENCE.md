@@ -84,7 +84,7 @@ Read `api.server_info` / `api.version` for the connected versions.
 | `("accountBalance",)` / `("accountBalance","A","B")` | Sum of accounts / named |
 | `("accountTxnAmt",None,"A")` / `("accountTxnAmt","<tag>","A")` | Account transactions |
 | `("reserveGap","A")` / `("reserveExcess","A")` | Reserve shortfall / excess |
-| `("feeDue","F1")` / `("lastFeePaid","F1")` | Fee due / fees paid on the current calculation date (engine `LastFeePaid`; the wrapper currently emits cumulative `FeePaidAmt` — mapping fix pending) |
+| `("feeDue","F1")` / `("lastFeePaid","F1")` | Fee due / fees paid on the current calculation date (engine `LastFeePaid`) |
 | `("feeTxnAmt",None,"F1")` | Fee transaction amount |
 | `("liqCredit","L1")` / `("liqBalance","L1")` | Credit line / drawn balance |
 | `("ledgerBalance","L1")` / `("ledgerTxnAmount","L1")` | Ledger balance / txns |
