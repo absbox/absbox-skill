@@ -62,7 +62,11 @@ state when the cumulative default rate breaches 3%.
 ## Trigger points
 
 `BeforeCollect`, `AfterCollect`, `BeforeDistribution`, `AfterDistribution`,
+<<<<<<< HEAD
 `InDistribution`.
+=======
+`InDistribution`. (`EndOfPoolCollection` is not mapped by the 0.52.3 client.)
+>>>>>>> main
 
 ## Effects
 

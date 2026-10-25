@@ -4,6 +4,7 @@ A skill for modeling and projecting structured finance deals (ABS, MBS, CLO,
 SRT) with the [absbox](https://absbox-doc.readthedocs.io/en/latest/) Python
 library and the Hastructure engine.
 
+<<<<<<< HEAD
 ## Install (npm / npx)
 
 The skill ships as the [`absbox-skill`](https://www.npmjs.com/package/absbox-skill)
@@ -51,6 +52,8 @@ Destination layout (skill folder is named `absbox`, from `SKILL.md`):
 
 Restart the agent after installing so it picks up the skill.
 
+=======
+>>>>>>> main
 ## Files
 
 | File | Purpose |
@@ -59,9 +62,16 @@ Restart the agent after installing so it picks up the skill.
 | `REFERENCE.md` | Exhaustive lookup tables: formulas, actions, constants, API |
 | `golden-paths/` | Verified end-to-end recipes |
 | `evals/` | Behavior tests for the skill |
+<<<<<<< HEAD
 | `doc/CHANGELOG.md` | Release history |
 
 ## Python dependencies
+=======
+| `doc/contract-audit.md` | Maintenance: AbsBox↔Hastructure contract audit routine |
+| `doc/CHANGELOG.md` | Release history |
+
+## Setup
+>>>>>>> main
 
 ```bash
 pip install absbox          # Python 3.10+
