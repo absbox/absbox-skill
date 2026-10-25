@@ -8,11 +8,7 @@ description: >-
   projections. Python 3.10+.
 metadata:
   author: absbox
-<<<<<<< HEAD
   version: "4.0.1"
-=======
-  version: "4.1.0"
->>>>>>> main
 license: Apache-2.0
 ---
 
@@ -25,11 +21,8 @@ it loaded. Pull detail from the files it points to.
 - `REFERENCE.md` — exhaustive lookup tables (formulas, actions, constants, API).
 - `golden-paths/` — verified end-to-end recipes. **Read the matching one before
   improvising a multi-step script.**
-<<<<<<< HEAD
-=======
 - `doc/contract-audit.md` — maintenance routine: keep AbsBox tags/shapes in sync
   with the Hastructure engine types.
->>>>>>> main
 - `README.md` — human quick start.
 - `doc/CHANGELOG.md` — release history tied to engine versions.
 
@@ -75,12 +68,8 @@ api = API("https://absbox.org/api/latest", 'english')
 
 `EnginePath` shortcuts: `DEV`, `PROD`, `LOCAL`, `NY_DEV`, `NY_PROD`,
 `USE_ENV` (reads env var `ABSBOX_SERVER`). `PROD` =
-<<<<<<< HEAD
-`https://absbox.org/api/latest`.
-=======
 `https://absbox.org/api/latest`. There is **no** `LDN_DEV`/`LDN_PROD` in
-absbox 0.52.3.
->>>>>>> main
+absbox 0.52.x.
 
 **Version rule:** the client and engine must share the same **MAJOR.MINOR**
 version; the patch may differ. `check=True` (the default) enforces this at
@@ -95,15 +84,8 @@ docker pull yellowbean/hastructure
 docker run -p 8081:8081 yellowbean/hastructure
 ```
 
-<<<<<<< HEAD
-Auto-select the first reachable endpoint:
-
-```python
-from absbox import PickApiFrom
-api = PickApiFrom([EnginePath.PROD, EnginePath.DEV, "http://host:8081"], lang='english')
-=======
-Pick the first reachable endpoint yourself. (`PickApiFrom` exists but is
-**broken in absbox 0.52.3** — it passes `API` an internal `{"url": ...}` dict —
+Auto-select the first reachable endpoint yourself. (`PickApiFrom` exists but is
+**broken in absbox 0.52.x** — it passes `API` an internal `{"url": ...}` dict —
 so do not use it until fixed.)
 
 ```python
@@ -116,7 +98,6 @@ for ep in [EnginePath.PROD, EnginePath.DEV, EnginePath.LOCAL]:
         break
     except Exception:
         continue
->>>>>>> main
 ```
 
 ## Minimal complete deal (verified against the DEV engine)
@@ -178,22 +159,14 @@ deal immediately with no cashflow.
 
 | Key | Required | Description |
 |-----|----------|-------------|
-<<<<<<< HEAD
 | `name` | no | Deal identifier (defaults to empty) |
-=======
-| `name` | yes | Deal identifier |
->>>>>>> main
 | `dates` | yes | cutoff/closing/firstPay/payFreq/poolFreq/stated |
 | `pool` | yes | `{"assets": [...]}`; multi-pool = `{"PoolA": {...}, "PoolB": {...}}` |
 | `accounts` | yes | Cash accounts, optional reserve targets and rates |
 | `bonds` | yes | Tranches; nested map = bond group |
 | `waterfall` | yes | Actions keyed by deal status |
 | `collect` | yes | Maps pool sources to accounts |
-<<<<<<< HEAD
 | `status` | no | `(initial, next)` e.g. `("PreClosing", "Amortizing")`; defaults to `"Amortizing"` |
-=======
-| `status` | yes | `(initial, next)` e.g. `("PreClosing", "Amortizing")` |
->>>>>>> main
 | `fees` | no | Service/trustee fees |
 | `triggers` | no | Performance triggers by point |
 | `liqFacility` | no | Liquidity facilities |
@@ -235,14 +208,9 @@ dates = api.runDates("2021-01-01", "MonthEnd", "2022-01-01")
 ```
 
 Result keys: `r['pool']['flow']`, `r['bonds'][name]`, `r['accounts'][name]`,
-<<<<<<< HEAD
 `r['fees']`, `r['result']['logs' | 'status' | 'waterfall' | 'waterfallInspect' | 'inspect']`,
 `r['pricing']` (present only when a pricing assumption was requested —
 `r['result']['report']` is not emitted by engines 0.52.x). Helpers: `readBondsCf`, `readFeesCf`, `readAccsCf`,
-=======
-`r['fees']`, `r['result']['logs' | 'status' | 'waterfall' | 'inspect' | 'report']`,
-`r['pricing']`. Helpers: `readBondsCf`, `readFeesCf`, `readAccsCf`,
->>>>>>> main
 `readInspect`, `readLedgers`, `unifyTs`, `readFlowsByScenarios`,
 `readMultiFlowsByScenarios`, `readFieldsByScenarios`, `toHtml`, `toExcel`,
 `compResult`. See `REFERENCE.md` §15–16.
@@ -262,15 +230,10 @@ sending it — the cheapest way to validate a deal map offline.
    `(assetType, default, prepay, recovery, extra)`; use `None` for gaps.
 5. **Single-element formulas need a trailing comma** — `("poolBalance",)`, not
    `("poolBalance")`.
-<<<<<<< HEAD
 6. **Enums are usually dict-wrapped** — `{"Sequential": None}`,
    `{"Fixed": 0.05}`. A few are bare strings (`bondType: "IO"`, `"Sequential"`,
    `"Equity"`), and some wire enums must be strings (pool sources). Follow the
    tables per field instead of assuming one rule.
-=======
-6. **Enums are dict-wrapped** — `{"Sequential": None}`, `{"Equity": None}`,
-   `{"Fixed": 0.05}`; a bare string fails.
->>>>>>> main
 7. **Action names and group order are exact, lowercase-sensitive** —
    `payPrin`, `accrueAndPayInt`; group order is `"byName"`/`"byMaturity"`/
    `"byCurRate"`/`"byProrata"` (not `"ByName"`).
@@ -283,14 +246,9 @@ sending it — the cheapest way to validate a deal map offline.
 11. **Reserve accounts need `type`** — otherwise the account is a plain
     passthrough with no target.
 12. **Group/`writeOff`/`fundWith`/`liqRepay` arg counts** — `writeOff` and
-<<<<<<< HEAD
     `fundWith` accept an optional limit (omit it, or pass `None`); use the 4-arg
     `liqRepay` (`["liqRepay", ["int","bal"], acc, liq]`), adding a 5th limit if
     needed. See `REFERENCE.md` §9.
-=======
-    `fundWith` need an explicit limit (`None` is fine); use the 4-arg
-    `liqRepay`. See `REFERENCE.md` §9.
->>>>>>> main
 13. **Large responses can truncate behind proxies** — pool projections grow with
     assets × periods; keep test deals small or use a local engine.
 
@@ -304,8 +262,6 @@ sending it — the cheapest way to validate a deal map offline.
    no effect.
 5. `viz(deal)` (from `absbox.local.chart`) renders a Graphviz diagram.
 6. Compare pricing (WAL/duration/yield) against a benchmark.
-<<<<<<< HEAD
-=======
 
 ## Maintenance routine — cross-repo contract audit
 
@@ -324,4 +280,3 @@ follow `doc/contract-audit.md` for the manual checks the script cannot do:
 `contents` arity/order, record field names, and response row orders. File one
 consolidated issue with `file:line` evidence and add offline regression tests in
 `absbox/tests/test_parsers.py`.
->>>>>>> main

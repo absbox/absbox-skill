@@ -1,11 +1,7 @@
 # 02 — Assumptions & scenario sensitivity
 
 Goal: drive a deal with pool performance assumptions and compare scenarios.
-<<<<<<< HEAD
 Verified on absbox 0.52.x / Hastructure 0.52.13 (numbers below re-measured).
-=======
-Verified against `DEV` on absbox 0.52.3 / Hastructure 0.52.4.
->>>>>>> main
 
 ## Pool assumption structure
 
@@ -24,7 +20,6 @@ pa_stress = ("Pool",
 Scope a different assumption to a slice of the pool:
 
 ```python
-<<<<<<< HEAD
 # every scope entry is (indices, (performing, delinquency, defaulted))
 perf_lo = ("Mortgage", {"CDR": 0.02}, {"CPR": 0.01}, {"Rate": 0.5, "Lag": 12}, None)
 perf_hi = ("Mortgage", {"CDR": 0.05}, None, {"Rate": 0.3, "Lag": 24}, None)
@@ -38,18 +33,6 @@ pa = ("ByObligor",
       ("ByTag", ["GroupA"], "TagEq", (perf_lo, None, None)),
       ("ById", ["OB001"], (perf_lo, None, None)),
       ("ByDefault", (perf_hi, None, None)))
-=======
-# by asset index
-pa = ("ByIndex",
-      ([0, 1], ("Mortgage", {"CDR": 0.02}, {"CPR": 0.01}, {"Rate": 0.5, "Lag": 12}, None)),
-      ([2, 3], ("Mortgage", {"CDR": 0.05}, None, {"Rate": 0.3, "Lag": 24}, None)))
-
-# by obligor tag / id / field
-pa = ("ByObligor",
-      ("ByTag", ["GroupA"], "TagEq", assump1),
-      ("ById", ["OB001"], assump2),
-      ("ByDefault", assump3))
->>>>>>> main
 ```
 
 ## Running scenarios
@@ -96,19 +79,11 @@ print("final A balance:", final_a)
 print("cumulative default:", cum_default)
 ```
 
-<<<<<<< HEAD
 Verified output (re-measured on absbox 0.52.x / Hastructure 0.52.13):
 
 ```
 final A balance: {'base': 15.28, 'stress': 1286.94}
 cumulative default: {'base': 310.75, 'stress': 2230.71}
-=======
-Verified output:
-
-```
-final A balance: {'base': 2462.26, 'stress': 3225.52}
-cumulative default: {'base': 211.32, 'stress': 1592.15}
->>>>>>> main
 ```
 
 ## Gotchas

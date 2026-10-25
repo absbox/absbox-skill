@@ -2,11 +2,7 @@
 
 Goal: solve for a structure that hits a target IRR, using `runRootFinder` to
 `splitBalance` between two tranches. Adapted from the official lease example.
-<<<<<<< HEAD
 Verified on absbox 0.52.x / Hastructure 0.52.13 (numbers below re-measured).
-=======
-Verified against `DEV` on absbox 0.52.3 / Hastructure 0.52.4.
->>>>>>> main
 
 ```python
 from absbox import API, EnginePath, mkDeal
@@ -50,11 +46,7 @@ pricing = ("pricing", {"IRR": {"B": ("holding", [("2021-06-15", -1000)], 1000)}}
 
 # 1. A single run gives the current IRR of the equity tranche.
 r = api.run(deal, poolAssump=pool_perf, runAssump=[pricing], read=True)
-<<<<<<< HEAD
 print(r['pricing']['summary'])          # B -> 0.162259
-=======
-print(r['pricing']['summary'])          # B -> 0.153709
->>>>>>> main
 
 # 2. Solve the A1/B split that lifts B to a 25% IRR.
 factor, result = api.runRootFinder(
@@ -62,7 +54,6 @@ factor, result = api.runRootFinder(
     (("splitBalance", "A1", "B", 0.01, 0.99),
      ("bondMetTargetIrr", "B", 0.25)))
 
-<<<<<<< HEAD
 print("factor:", factor)                 # 0.8228100051243952
 print({k: v['bndBalance']
        for k, v in result[0]['RDeal']['bonds'].items()})
@@ -71,15 +62,6 @@ print({k: v['bndBalance']
 
 Verified output (re-measured on absbox 0.52.x / Hastructure 0.52.13):
 `factor: 0.8228100051243952`, `{'A1': 1645.62, 'B': 354.38}`.
-=======
-print("factor:", factor)                 # 0.8477699613302272
-print({k: v['bndBalance']
-       for k, v in result[0]['RDeal']['bonds'].items()})
-# {'A1': 1695.53, 'B': 304.47}
-```
-
-Verified output: `factor: 0.8477699613302272`, `{'A1': 1695.53, 'B': 304.47}`.
->>>>>>> main
 
 ## Other tweaks / stop conditions
 
