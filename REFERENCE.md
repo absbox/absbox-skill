@@ -738,8 +738,7 @@ value has the same structure as above.
 `USCMT1Y`, `PRIME`, `COFI`, `SOFR1M/3M/6M/1Y`, `EURIBOR1M/3M/6M/12M`, `IRPH`,
 `SONIA`.
 
-**Periods:** `Daily`, `Weekly`, `Monthly`, `Quarterly`, `SemiAnnually`,
-`Annually`.
+**Periods:** `Weekly`, `Monthly`, `Quarterly`, `SemiAnnually`, `Annually`.
 
 **Statuses:** `PreClosing`, `Warehousing`, `Revolving`, `Amortizing`,
 `Accelerated`, `Defaulted`, `Called`, `Ended`. (`RampUp` is not a deal status;
