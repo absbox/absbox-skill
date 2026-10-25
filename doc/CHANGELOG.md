@@ -1,5 +1,18 @@
 # absbox Skill Changelog
 
+## v4.0.6 — 2026-10-26
+- 对齐 absbox/docs（Dec26）：REFERENCE 按手册补齐/修正语法
+- 修正：Weekday `0=Sunday`；`("call", {"poolBalance":200})`（非 CleanUp）；
+  ByPoolId 键为池名；DatePattern 复合形式（All/Exclude/Starts/Ends）与 `-` 列表
+- 补齐：公式（poolFactor/totalFunded/irrOfBond/bondFactor/…）、条件（date/period
+  between/in、<=/>=、periodCurve）、费率 tuple/0.52.3 sugar、债券组 tuple 形式、
+  账户 `fixReserve`、默认资产假设、集合 dict 语法、waterfall 标准键与 bookBy
+  三种形式、run 假设（stop 按 pattern、call 字典键、callWhen 形式、issueBond 多计划）、
+  结果键（agg_accounts/triggers/liqProvider/rateSwap/rateCap/inspect/bonds）
+- 恢复此前 merge 丢失的 §8 Accounts；修正 §2.4 表格列数
+- Periods 增加 BiWeekly；状态增加 Called（与手册一致）
+- 版本 4.0.6
+
 ## v4.0.5 — 2026-10-26
 - 文档：FixedAsset 的 `("ByTerm", …)` 容量键为整数期数（非日期），与引擎 Dec26 对齐
 

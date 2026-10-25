@@ -8,7 +8,7 @@ description: >-
   projections. Python 3.10+.
 metadata:
   author: absbox
-  version: "4.0.5"
+  version: "4.0.6"
 license: Apache-2.0
 ---
 
